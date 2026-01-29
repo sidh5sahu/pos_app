@@ -1,0 +1,105 @@
+{% extends "base.html" %}
+
+{% block title %}Point of Sale{% endblock %}
+
+{% block content %}
+<div class="pos-layout">
+    <div class="main-content">
+        <div class="header-actions" style="margin-bottom: 1rem; display: flex; justify-content: space-between;">
+            <div id="user-info"></div>
+            <div id="role-actions">
+                <!-- Actions injected by JS based on role -->
+            </div>
+        </div>
+        <div class="products-grid" id="products-grid">
+            <!-- Products will be loaded here via JS -->
+        </div>
+
+        <!-- Reports Section (Hidden by default) -->
+        <div id="reports-section"
+            style="display: none; margin-top: 2rem; background: white; padding: 1rem; border-radius: 0.5rem;">
+            <h2>Reports</h2>
+            <div id="reports-content"></div>
+        </div>
+    </div>
+
+    <div class="cart-sidebar">
+        <h2>Current Order</h2>
+        <div class="cart-items" id="cart-items">
+            <!-- Cart items -->
+        </div>
+        <div class="cart-total">
+            <h3>Total: $<span id="total-amount">0.00</span></h3>
+            <button class="checkout-btn" onclick="checkout()">Checkout</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        loadProducts();
+        setupRoleUI();
+    });
+
+    async function setupRoleUI() {
+        const token = localStorage.getItem('token');
+        if (!token) return;
+
+        try {
+            const response = await fetch('/users/me', {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            const user = await response.json();
+
+            document.getElementById('user-info').innerHTML = `Logged in as: <b>${user.username}</b> (${user.role})`;
+
+            const actions = document.getElementById('role-actions');
+            if (user.role === 'sales' || user.role === 'accounts' || user.role === 'admin') {
+                const btn = document.createElement('button');
+                btn.innerText = 'EOD Report';
+                btn.onclick = loadEODReport;
+                btn.style.marginRight = '10px';
+                actions.appendChild(btn);
+            }
+
+            if (user.role === 'accounts' || user.role === 'admin') {
+                const pnlBtn = document.createElement('button');
+                pnlBtn.innerText = 'PnL Report';
+                pnlBtn.onclick = loadPnLReport;
+                actions.appendChild(pnlBtn);
+            }
+        } catch (e) {
+            console.error(e);
+        }
+    }
+
+    async function loadEODReport() {
+        const token = localStorage.getItem('token');
+        const res = await fetch('/api/reports/eod', { headers: { 'Authorization': `Bearer ${token}` } });
+        const data = await res.json();
+
+        const section = document.getElementById('reports-section');
+        section.style.display = 'block';
+        document.getElementById('reports-content').innerHTML = `
+            <h3>EOD Report (${data.date})</h3>
+            <p>Total Sales: $${data.total_sales.toFixed(2)}</p>
+            <p>Order Count: ${data.order_count}</p>
+        `;
+    }
+
+    async function loadPnLReport() {
+        const token = localStorage.getItem('token');
+        const res = await fetch('/api/reports/pnl', { headers: { 'Authorization': `Bearer ${token}` } });
+        const data = await res.json();
+
+        const section = document.getElementById('reports-section');
+        section.style.display = 'block';
+        document.getElementById('reports-content').innerHTML = `
+            <h3>PnL Report</h3>
+            <p>Total Revenue: $${data.total_revenue.toFixed(2)}</p>
+            <p>Total Cost: $${data.total_cost.toFixed(2)}</p>
+            <p>Net Profit: <b style="color: ${data.net_profit >= 0 ? 'green' : 'red'}">$${data.net_profit.toFixed(2)}</b></p>
+        `;
+    }
+</script>
+{% endblock %}

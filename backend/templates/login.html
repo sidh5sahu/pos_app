@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - Sales Billing System</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #6366f1;
+            --bg-primary: #0f172a;
+            --bg-secondary: #1e293b;
+            --text-primary: #f8fafc;
+            --text-secondary: #94a3b8;
+            --border: #475569;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 1rem;
+        }
+
+        .login-container {
+            width: 100%;
+            max-width: 420px;
+        }
+
+        .login-card {
+            background: var(--bg-secondary);
+            border-radius: 1.5rem;
+            padding: 2.5rem;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            border: 1px solid var(--border);
+        }
+
+        .logo {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        .logo-icon {
+            font-size: 3rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .logo-text {
+            font-size: 1.5rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--primary), #a855f7);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .logo-subtitle {
+            color: var(--text-secondary);
+            font-size: 0.875rem;
+            margin-top: 0.25rem;
+        }
+
+        .form-group {
+            margin-bottom: 1.25rem;
+        }
+
+        .form-group label {
+            display: block;
+            color: var(--text-secondary);
+            font-size: 0.875rem;
+            font-weight: 500;
+            margin-bottom: 0.5rem;
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 0.875rem 1rem;
+            background: var(--bg-primary);
+            border: 1px solid var(--border);
+            border-radius: 0.75rem;
+            color: var(--text-primary);
+            font-size: 1rem;
+            transition: all 0.2s;
+        }
+
+        .form-control:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2);
+        }
+
+        .form-control::placeholder {
+            color: var(--text-secondary);
+        }
+
+        .btn-login {
+            width: 100%;
+            padding: 0.875rem;
+            background: linear-gradient(135deg, var(--primary), #8b5cf6);
+            color: white;
+            border: none;
+            border-radius: 0.75rem;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-top: 0.5rem;
+        }
+
+        .btn-login:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(99, 102, 241, 0.4);
+        }
+
+        .btn-login:disabled {
+            opacity: 0.7;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .error-message {
+            background: rgba(239, 68, 68, 0.1);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            color: #f87171;
+            padding: 0.75rem 1rem;
+            border-radius: 0.5rem;
+            margin-bottom: 1rem;
+            font-size: 0.875rem;
+            display: none;
+        }
+
+        .demo-credentials {
+            margin-top: 2rem;
+            padding-top: 1.5rem;
+            border-top: 1px solid var(--border);
+        }
+
+        .demo-title {
+            color: var(--text-secondary);
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            margin-bottom: 0.75rem;
+        }
+
+        .demo-list {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 0.5rem;
+        }
+
+        .demo-item {
+            background: var(--bg-primary);
+            padding: 0.625rem 0.75rem;
+            border-radius: 0.5rem;
+            font-size: 0.75rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: 1px solid transparent;
+        }
+
+        .demo-item:hover {
+            border-color: var(--primary);
+        }
+
+        .demo-item .role {
+            color: var(--primary);
+            font-weight: 600;
+            text-transform: uppercase;
+            font-size: 0.625rem;
+        }
+
+        .demo-item .creds {
+            color: var(--text-secondary);
+            margin-top: 0.125rem;
+        }
+
+        .loading-spinner {
+            display: none;
+            width: 1.25rem;
+            height: 1.25rem;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-top-color: white;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin-right: 0.5rem;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="login-container">
+        <div class="login-card">
+            <div class="logo">
+                <div class="logo-icon">💼</div>
+                <div class="logo-text">Sales Billing</div>
+                <div class="logo-subtitle">Point of Sale System</div>
+            </div>
+
+            <div class="error-message" id="error-message"></div>
+
+            <form id="login-form" onsubmit="handleLogin(event)">
+                <div class="form-group">
+                    <label for="username">Username</label>
+                    <input type="text" id="username" class="form-control" placeholder="Enter username" required
+                        autofocus>
+                </div>
+                <div class="form-group">
+                    <label for="password">Password</label>
+                    <input type="password" id="password" class="form-control" placeholder="Enter password" required>
+                </div>
+                <button type="submit" class="btn-login" id="login-btn">
+                    <span class="loading-spinner" id="spinner"></span>
+                    <span id="btn-text">Sign In</span>
+                </button>
+            </form>
+
+            <div class="demo-credentials">
+                <div class="demo-title">Demo Accounts</div>
+                <div class="demo-list">
+                    <div class="demo-item" onclick="fillCredentials('admin', 'admin123')">
+                        <div class="role">Admin</div>
+                        <div class="creds">admin / admin123</div>
+                    </div>
+                    <div class="demo-item" onclick="fillCredentials('sales1', 'sales123')">
+                        <div class="role">Sales</div>
+                        <div class="creds">sales1 / sales123</div>
+                    </div>
+                    <div class="demo-item" onclick="fillCredentials('accountant', 'acc123')">
+                        <div class="role">Accounts</div>
+                        <div class="creds">accountant / acc123</div>
+                    </div>
+                    <div class="demo-item" onclick="fillCredentials('stock', 'stock123')">
+                        <div class="role">Stock</div>
+                        <div class="creds">stock / stock123</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function fillCredentials(username, password) {
+            document.getElementById('username').value = username;
+            document.getElementById('password').value = password;
+        }
+
+        async function handleLogin(event) {
+            event.preventDefault();
+
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            const errorEl = document.getElementById('error-message');
+            const spinner = document.getElementById('spinner');
+            const btnText = document.getElementById('btn-text');
+            const loginBtn = document.getElementById('login-btn');
+
+            // Show loading
+            spinner.style.display = 'inline-block';
+            btnText.textContent = 'Signing in...';
+            loginBtn.disabled = true;
+            errorEl.style.display = 'none';
+
+            try {
+                const formData = new FormData();
+                formData.append('username', username);
+                formData.append('password', password);
+
+                const response = await fetch('/api/auth/token', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    localStorage.setItem('token', data.access_token);
+                    localStorage.setItem('user', JSON.stringify(data.user));
+
+                    // Redirect based on role
+                    const roleRedirects = {
+                        'admin': '/admin',
+                        'sales': '/sales',
+                        'inventory': '/stock',
+                        'accounts': '/accountant'
+                    };
+
+                    window.location.href = roleRedirects[data.user.role] || '/dashboard';
+                } else {
+                    throw new Error(data.detail || 'Login failed');
+                }
+            } catch (error) {
+                errorEl.textContent = error.message;
+                errorEl.style.display = 'block';
+            } finally {
+                spinner.style.display = 'none';
+                btnText.textContent = 'Sign In';
+                loginBtn.disabled = false;
+            }
+        }
+
+        // Check if already logged in
+        const token = localStorage.getItem('token');
+        const userStr = localStorage.getItem('user');
+        
+        if (token && userStr) {
+            try {
+                const user = JSON.parse(userStr);
+                // Only redirect if user has a valid role
+                if (user.role) {
+                    const roleRedirects = {
+                        'admin': '/admin',
+                        'sales': '/sales',
+                        'inventory': '/stock',
+                        'accounts': '/accountant'
+                    };
+                    window.location.href = roleRedirects[user.role] || '/sales';
+                } else {
+                    // Clear invalid data
+                    localStorage.removeItem('token');
+                    localStorage.removeItem('user');
+                }
+            } catch (e) {
+                // Clear corrupted data
+                localStorage.removeItem('token');
+                localStorage.removeItem('user');
+            }
+        }
+    </script>
+</body>
+
+</html>

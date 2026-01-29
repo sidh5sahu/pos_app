@@ -1,0 +1,422 @@
+{% extends "base.html" %}
+{% block title %}Reports & Analytics{% endblock %}
+
+{% block extra_styles %}
+<style>
+    .tabs {
+        display: flex;
+        gap: 0.5rem;
+        margin-bottom: 1.5rem;
+        border-bottom: 2px solid var(--border);
+    }
+
+    .tab {
+        padding: 0.75rem 1.5rem;
+        background: transparent;
+        border: none;
+        color: var(--text-secondary);
+        cursor: pointer;
+        font-weight: 500;
+        border-bottom: 2px solid transparent;
+        margin-bottom: -2px;
+        transition: all 0.2s;
+    }
+
+    .tab.active {
+        color: var(--primary);
+        border-bottom-color: var(--primary);
+    }
+
+    .tab-content {
+        display: none;
+    }
+
+    .tab-content.active {
+        display: block;
+    }
+
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .stat-card {
+        background: var(--bg-secondary);
+        padding: 1.5rem;
+        border-radius: 0.75rem;
+        border: 1px solid var(--border);
+    }
+
+    .stat-icon {
+        font-size: 2rem;
+        margin-bottom: 0.5rem;
+    }
+
+    .stat-value {
+        font-size: 1.75rem;
+        font-weight: 700;
+        margin-bottom: 0.25rem;
+    }
+
+    .stat-label {
+        color: var(--text-secondary);
+        font-size: 0.875rem;
+    }
+
+    .payment-breakdown {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+        gap: 1rem;
+    }
+
+    .payment-item {
+        background: var(--bg-card);
+        padding: 1rem;
+        border-radius: 0.5rem;
+        border-left: 3px solid;
+    }
+
+    .payment-item.cash {
+        border-left-color: #10b981;
+    }
+
+    .payment-item.upi {
+        border-left-color: #6366f1;
+    }
+
+    .payment-item.card {
+        border-left-color: #f59e0b;
+    }
+
+    .filters {
+        display: flex;
+        gap: 1rem;
+        margin-bottom: 1.5rem;
+        flex-wrap: wrap;
+    }
+
+    .customer-search {
+        position: relative;
+        flex: 1;
+        min-width: 250px;
+    }
+
+    .customer-list {
+        display: grid;
+        gap: 0.75rem;
+    }
+
+    .customer-card {
+        background: var(--bg-secondary);
+        padding: 1rem;
+        border-radius: 0.5rem;
+        border: 1px solid var(--border);
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+    .customer-card:hover {
+        border-color: var(--primary);
+        transform: translateY(-2px);
+    }
+
+    .customer-name {
+        font-weight: 600;
+        margin-bottom: 0.25rem;
+    }
+
+    .customer-info {
+        font-size: 0.875rem;
+        color: var(--text-secondary);
+        display: flex;
+        gap: 1rem;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<h1>📊 Reports & Analytics</h1>
+
+<div class="tabs">
+    <button class="tab active" onclick="switchTab('sales')">💰 Sales Report</button>
+    <button class="tab" onclick="switchTab('customers')">👥 Customer Details</button>
+</div>
+
+<!-- Sales Report Tab -->
+<div id="sales-tab" class="tab-content active">
+    <div class="filters">
+        <input type="date" id="report-date" class="form-control" onchange="loadSalesReport()">
+        <button class="btn btn-primary" onclick="loadSalesReport()">🔍 Load Report</button>
+        <button class="btn btn-secondary" onclick="setToday()">📅 Today</button>
+    </div>
+
+    <div class="stats-grid" id="sales-stats">
+        <div class="stat-card">
+            <div class="stat-icon">🧾</div>
+            <div class="stat-value" id="stat-orders">0</div>
+            <div class="stat-label">Total Orders</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon">💰</div>
+            <div class="stat-value" id="stat-sales">₹0.00</div>
+            <div class="stat-label">Total Sales</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon">↩️</div>
+            <div class="stat-value" id="stat-refunds">₹0.00</div>
+            <div class="stat-label">Refunds</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon">✅</div>
+            <div class="stat-value" id="stat-net">₹0.00</div>
+            <div class="stat-label">Net Sales</div>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-title">💳 Payment Mode Breakdown</div>
+        <div class="payment-breakdown" id="payment-breakdown">
+            <div class="payment-item cash">
+                <div style="font-weight: 600; margin-bottom: 0.25rem;">💵 Cash</div>
+                <div style="font-size: 1.25rem; font-weight: 700;" id="payment-cash">₹0.00</div>
+            </div>
+            <div class="payment-item upi">
+                <div style="font-weight: 600; margin-bottom: 0.25rem;">📱 UPI</div>
+                <div style="font-size: 1.25rem; font-weight: 700;" id="payment-upi">₹0.00</div>
+            </div>
+            <div class="payment-item card">
+                <div style="font-weight: 600; margin-bottom: 0.25rem;">💳 Card</div>
+                <div style="font-size: 1.25rem; font-weight: 700;" id="payment-card">₹0.00</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card" style="margin-top: 1.5rem;">
+        <div class="card-title">📈 Top Products</div>
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Product Name</th>
+                        <th>Quantity Sold</th>
+                        <th>Total Revenue</th>
+                    </tr>
+                </thead>
+                <tbody id="top-products">
+                    <tr>
+                        <td colspan="3" style="text-align: center; color: var(--text-secondary);">No data</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Customers Tab -->
+<div id="customers-tab" class="tab-content">
+    <div class="customer-search">
+        <input type="text" id="customer-search-input" class="form-control"
+            placeholder="🔍 Search customers by name or mobile..." oninput="searchCustomers()">
+    </div>
+
+    <div class="customer-list" id="customer-list" style="margin-top: 1.5rem;">
+        <div style="text-align: center; padding: 3rem; color: var(--text-secondary);">
+            Search for customers to view their details
+        </div>
+    </div>
+</div>
+
+<!-- Customer Details Modal -->
+<div class="modal-overlay" id="customer-modal">
+    <div class="modal" style="max-width: 700px;">
+        <div class="modal-header">
+            <span class="modal-title">👤 Customer Details</span>
+            <button class="modal-close" onclick="closeCustomerModal()">&times;</button>
+        </div>
+        <div id="customer-details-content">
+            <!-- Content loaded here -->
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    let currentTab = 'sales';
+
+    document.addEventListener('DOMContentLoaded', () => {
+        setToday();
+        loadSalesReport();
+    });
+
+    function switchTab(tab) {
+        currentTab = tab;
+        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+        document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+
+        event.target.classList.add('active');
+        document.getElementById(`${tab}-tab`).classList.add('active');
+    }
+
+    function setToday() {
+        const today = new Date().toISOString().split('T')[0];
+        document.getElementById('report-date').value = today;
+    }
+
+    async function loadSalesReport() {
+        const date = document.getElementById('report-date').value;
+        if (!date) {
+            showToast('Please select a date', 'warning');
+            return;
+        }
+
+        try {
+            const data = await api(`/api/reports/daily?date=${date}`);
+
+            // Update stats
+            document.getElementById('stat-orders').textContent = data.summary.total_orders;
+            document.getElementById('stat-sales').textContent = formatCurrency(data.summary.total_sales);
+            document.getElementById('stat-refunds').textContent = formatCurrency(data.summary.total_refunds);
+            document.getElementById('stat-net').textContent = formatCurrency(data.summary.net_sales);
+
+            // Payment breakdown
+            document.getElementById('payment-cash').textContent = formatCurrency(data.payment_breakdown.cash);
+            document.getElementById('payment-upi').textContent = formatCurrency(data.payment_breakdown.upi);
+            document.getElementById('payment-card').textContent = formatCurrency(data.payment_breakdown.card);
+
+            // Top products
+            const productsTable = document.getElementById('top-products');
+            if (data.top_products.length === 0) {
+                productsTable.innerHTML = '<tr><td colspan="3" style="text-align: center; color: var(--text-secondary);">No sales data</td></tr>';
+            } else {
+                productsTable.innerHTML = data.top_products.map(p => `
+                    <tr>
+                        <td>${p.product_name}</td>
+                        <td>${p.quantity}</td>
+                        <td>${formatCurrency(p.total)}</td>
+                    </tr>
+                `).join('');
+            }
+
+            showToast('Report loaded successfully', 'success');
+        } catch (error) {
+            showToast('Failed to load report: ' + error.message, 'error');
+        }
+    }
+
+    let searchTimeout;
+    async function searchCustomers() {
+        clearTimeout(searchTimeout);
+        const query = document.getElementById('customer-search-input').value.trim();
+
+        if (query.length < 2) {
+            document.getElementById('customer-list').innerHTML = `
+                <div style="text-align: center; padding: 3rem; color: var(--text-secondary);">
+                    Enter at least 2 characters to search
+                </div>`;
+            return;
+        }
+
+        searchTimeout = setTimeout(async () => {
+            try {
+                const customers = await api(`/api/customers/?search=${encodeURIComponent(query)}`);
+
+                const listEl = document.getElementById('customer-list');
+                if (customers.length === 0) {
+                    listEl.innerHTML = `
+                        <div style="text-align: center; padding: 3rem; color: var(--text-secondary);">
+                            No customers found
+                        </div>`;
+                } else {
+                    listEl.innerHTML = customers.map(c => `
+                        <div class="customer-card" onclick="viewCustomerDetails(${c.id})">
+                            <div class="customer-name">${c.name}</div>
+                            <div class="customer-info">
+                                ${c.mobile ? `<span>📱 ${c.mobile}</span>` : ''}
+                                ${c.email ? `<span>✉️ ${c.email}</span>` : ''}
+                            </div>
+                        </div>
+                    `).join('');
+                }
+            } catch (error) {
+                showToast('Search failed: ' + error.message, 'error');
+            }
+        }, 300);
+    }
+
+    async function viewCustomerDetails(customerId) {
+        try {
+            const data = await api(`/api/customers/${customerId}/details`);
+            const customer = data.customer;
+            const stats = data.statistics;
+            const orders = data.recent_orders;
+
+            const content = `
+                <div style="display: grid; gap: 1.5rem;">
+                    <!-- Customer Info -->
+                    <div style="background: var(--bg-card); padding: 1.5rem; border-radius: 0.75rem;">
+                        <h3 style="margin-bottom: 1rem;">Customer Information</h3>
+                        <div style="display: grid; gap: 0.75rem;">
+                            <div><strong>Name:</strong> ${customer.name}</div>
+                            ${customer.mobile ? `<div><strong>Mobile:</strong> ${customer.mobile}</div>` : ''}
+                            ${customer.email ? `<div><strong>Email:</strong> ${customer.email}</div>` : ''}
+                            ${customer.address ? `<div><strong>Address:</strong> ${customer.address}</div>` : ''}
+                            <div><strong>Customer Since:</strong> ${formatDate(customer.created_at)}</div>
+                        </div>
+                    </div>
+
+                    <!-- Statistics -->
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                        <div style="background: var(--bg-card); padding: 1rem; border-radius: 0.5rem; text-align: center;">
+                            <div style="font-size: 2rem; font-weight: 700; color: var(--primary);">${stats.total_orders}</div>
+                            <div style="color: var(--text-secondary); font-size: 0.875rem;">Total Orders</div>
+                        </div>
+                        <div style="background: var(--bg-card); padding: 1rem; border-radius: 0.5rem; text-align: center;">
+                            <div style="font-size: 2rem; font-weight: 700; color: var(--success);">${formatCurrency(stats.total_spent)}</div>
+                            <div style="color: var(--text-secondary); font-size: 0.875rem;">Total Spent</div>
+                        </div>
+                    </div>
+
+                    <!-- Recent Orders -->
+                    <div>
+                        <h3 style="margin-bottom: 1rem;">Recent Orders</h3>
+                        <div class="table-container">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Bill #</th>
+                                        <th>Amount</th>
+                                        <th>Payment</th>
+                                        <th>Date</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    ${orders.length > 0 ? orders.map(o => `
+                                        <tr>
+                                            <td>${o.bill_number}</td>
+                                            <td>${formatCurrency(o.total_amount)}</td>
+                                            <td><span class="badge badge-info">${o.payment_mode.toUpperCase()}</span></td>
+                                            <td>${formatDate(o.created_at)}</td>
+                                        </tr>
+                                    `).join('') : '<tr><td colspan="4" style="text-align: center; color: var(--text-secondary);">No orders yet</td></tr>'}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            document.getElementById('customer-details-content').innerHTML = content;
+            document.getElementById('customer-modal').classList.add('active');
+        } catch (error) {
+            showToast('Failed to load customer details: ' + error.message, 'error');
+        }
+    }
+
+    function closeCustomerModal() {
+        document.getElementById('customer-modal').classList.remove('active');
+    }
+</script>
+{% endblock %}
