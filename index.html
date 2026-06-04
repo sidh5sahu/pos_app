@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Modern Invoice Generator</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar / Input Panel -->
+        <aside class="input-panel hide-on-print">
+            <div class="panel-header">
+                <h2><i class="ph ph-receipt"></i> Invoice Generator</h2>
+            </div>
+            
+            <div class="form-container">
+                <!-- Business Details -->
+                <section class="form-section">
+                    <h3>Business Details</h3>
+                    <div class="input-group">
+                        <label>Shop/Company Name</label>
+                        <input type="text" id="b-name" placeholder="E.g. XYZ Enterprises" oninput="updateInvoice()">
+                    </div>
+                    <div class="input-group">
+                        <label>Address</label>
+                        <textarea id="b-address" rows="2" placeholder="Full Address" oninput="updateInvoice()"></textarea>
+                    </div>
+                    <div class="input-group">
+                        <label>Contact / Email</label>
+                        <input type="text" id="b-contact" placeholder="Phone or Email" oninput="updateInvoice()">
+                    </div>
+                </section>
+
+                <!-- Customer Details -->
+                <section class="form-section">
+                    <h3>Customer Details</h3>
+                    <div class="input-group">
+                        <label>Customer Name</label>
+                        <input type="text" id="c-name" placeholder="John Doe" oninput="updateInvoice()">
+                    </div>
+                    <div class="input-group">
+                        <label>Address</label>
+                        <textarea id="c-address" rows="2" placeholder="Customer Address" oninput="updateInvoice()"></textarea>
+                    </div>
+                </section>
+
+                <!-- Invoice Details -->
+                <section class="form-section">
+                    <h3>Invoice Details</h3>
+                    <div class="grid-2">
+                        <div class="input-group">
+                            <label>Invoice Number</label>
+                            <div class="flex-row">
+                                <input type="text" id="inv-no" placeholder="INV-001" oninput="updateInvoice()">
+                                <button class="btn btn-icon" onclick="generateInvoiceNumber()" title="Auto Generate"><i class="ph ph-arrows-clockwise"></i></button>
+                            </div>
+                        </div>
+                        <div class="input-group">
+                            <label>Invoice Date</label>
+                            <input type="date" id="inv-date" oninput="updateInvoice()">
+                        </div>
+                        <div class="input-group">
+                            <label>Payment Mode</label>
+                            <select id="inv-payment" onchange="updateInvoice()">
+                                <option value="Cash">Cash</option>
+                                <option value="UPI">UPI</option>
+                                <option value="Card">Card</option>
+                                <option value="Bank Transfer">Bank Transfer</option>
+                                <option value="Credit">Credit</option>
+                            </select>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Product Entry -->
+                <section class="form-section product-section">
+                    <div class="section-header">
+                        <h3>Products</h3>
+                        <button class="btn btn-sm btn-primary" onclick="addProduct()"><i class="ph ph-plus"></i> Add</button>
+                    </div>
+                    <div id="product-list">
+                        <!-- Product items injected here via JS -->
+                    </div>
+                </section>
+            </div>
+        </aside>
+
+        <!-- Main Workspace / Invoice Preview -->
+        <main class="preview-panel">
+            <div class="action-bar hide-on-print">
+                <p class="preview-title">Invoice Preview</p>
+                <div class="actions">
+                    <button class="btn btn-outline" onclick="window.print()"><i class="ph ph-printer"></i> Print</button>
+                    <button class="btn btn-primary" onclick="downloadPDF()"><i class="ph ph-download-simple"></i> Download PDF</button>
+                </div>
+            </div>
+
+            <!-- The actual A4 Paper Invoice Format -->
+            <div class="invoice-wrapper">
+                <div class="invoice-paper" id="invoice-preview">
+                    <div class="invoice-header">
+                        <div class="b-info">
+                            <h1 id="out-b-name">COMPANY NAME</h1>
+                            <p id="out-b-address">Company Address Area, City, State - Pincode</p>
+                            <p><strong>Contact:</strong> <span id="out-b-contact">N/A</span></p>
+                        </div>
+                        <div class="inv-title">
+                            <h2>INVOICE</h2>
+                            <div class="inv-meta">
+                                <div><span>Invoice No:</span> <strong id="out-inv-no">INV-001</strong></div>
+                                <div><span>Date:</span> <strong id="out-inv-date">DD/MM/YYYY</strong></div>
+                                <div><span>Payment:</span> <strong id="out-inv-payment">Cash</strong></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="bill-to">
+                        <h3>Bill To:</h3>
+                        <p><strong id="out-c-name">Customer Name</strong></p>
+                        <p id="out-c-address">Customer Address Area, City</p>
+                    </div>
+
+                    <div class="invoice-items">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th width="10%">Sl</th>
+                                    <th width="45%">Item Description</th>
+                                    <th width="10%">Qty</th>
+                                    <th width="15%">Rate (₹)</th>
+                                    <th width="20%">Amount (₹)</th>
+                                </tr>
+                            </thead>
+                            <tbody id="out-items-body">
+                                <!-- Items injected here -->
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div class="invoice-summary">
+                        <div class="amount-words">
+                            <p><strong>Amount in Words:</strong></p>
+                            <p id="out-words" class="words-text">Zero Rupees Only</p>
+                            
+                            <div class="terms">
+                                <p><strong>Terms & Conditions:</strong></p>
+                                <ol>
+                                    <li>Goods once sold will not be taken back.</li>
+                                    <li>Interest @ 18% p.a. will be charged if payment is delayed.</li>
+                                    <li>Subject to local jurisdiction only.</li>
+                                </ol>
+                            </div>
+                        </div>
+                        <div class="summary-table">
+                            <div class="summary-row">
+                                <span>Sub Total:</span>
+                                <strong id="out-subtotal">₹0.00</strong>
+                            </div>
+                            <div class="summary-row">
+                                <span>Round Off:</span>
+                                <strong id="out-roundoff">₹0.00</strong>
+                            </div>
+                            <div class="summary-row grand-total">
+                                <span>Grand Total:</span>
+                                <strong id="out-grandtotal">₹0.00</strong>
+                            </div>
+                            <div class="signature">
+                                <p>For <strong id="out-sign-name">COMPANY NAME</strong></p>
+                                <div class="sign-space"></div>
+                                <p>Authorized Signatory</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+    <script src="script.js"></script>
+</body>
+</html>

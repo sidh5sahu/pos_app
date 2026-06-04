@@ -1,0 +1,487 @@
+:root {
+    --primary: #4F46E5; /* Indigo 600 */
+    --primary-hover: #4338CA;
+    --bg: #F3F4F6;
+    --surface: #FFFFFF;
+    --text-main: #111827;
+    --text-muted: #6B7280;
+    --border: #E5E7EB;
+    --danger: #EF4444;
+    --radius: 8px;
+    --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+    --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: 'Inter', sans-serif;
+}
+
+body {
+    background-color: var(--bg);
+    color: var(--text-main);
+}
+
+/* Layout */
+.app-container {
+    display: flex;
+    height: 100vh;
+    overflow: hidden;
+}
+
+.input-panel {
+    width: 420px;
+    min-width: 420px;
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    z-index: 10;
+    box-shadow: var(--shadow-sm);
+}
+
+.panel-header {
+    padding: 20px;
+    border-bottom: 1px solid var(--border);
+    background: #FAFAFA;
+}
+
+.panel-header h2 {
+    font-size: 1.2rem;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--primary);
+}
+
+.form-container {
+    flex: 1;
+    overflow-y: auto;
+    padding: 20px;
+}
+
+.form-section {
+    margin-bottom: 24px;
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px;
+    box-shadow: var(--shadow-sm);
+}
+
+.form-section h3 {
+    font-size: 0.95rem;
+    margin-bottom: 16px;
+    color: var(--text-main);
+    border-bottom: 2px solid var(--bg);
+    padding-bottom: 8px;
+}
+
+.input-group {
+    margin-bottom: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.input-group label {
+    font-size: 0.8rem;
+    font-weight: 500;
+    color: var(--text-muted);
+}
+
+input, textarea, select {
+    width: 100%;
+    padding: 8px 12px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    font-size: 0.9rem;
+    transition: all 0.2s;
+    outline: none;
+    background: #F9FAFB;
+}
+
+input:focus, textarea:focus, select:focus {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+    background: #FFF;
+}
+
+.grid-2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+}
+
+.flex-row {
+    display: flex;
+    gap: 8px;
+}
+
+.btn {
+    cursor: pointer;
+    border: none;
+    border-radius: 6px;
+    font-weight: 500;
+    font-size: 0.9rem;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+}
+
+.btn-primary {
+    background: var(--primary);
+    color: white;
+    padding: 8px 16px;
+}
+
+.btn-primary:hover {
+    background: var(--primary-hover);
+}
+
+.btn-outline {
+    background: white;
+    color: var(--text-main);
+    border: 1px solid var(--border);
+    padding: 8px 16px;
+}
+
+.btn-outline:hover {
+    background: var(--bg);
+}
+
+.btn-sm {
+    padding: 6px 12px;
+    font-size: 0.8rem;
+}
+
+.btn-icon {
+    padding: 8px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    color: var(--text-main);
+}
+.btn-icon:hover {
+    background: #E5E7EB;
+}
+
+.section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+    border-bottom: 2px solid var(--bg);
+    padding-bottom: 8px;
+}
+
+.section-header h3 {
+    margin: 0;
+    border: none;
+    padding: 0;
+}
+
+/* Product Cards in Input Panel */
+.product-card {
+    background: #FAFAFA;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 12px;
+    margin-bottom: 12px;
+    position: relative;
+    transition: all 0.2s;
+}
+
+.product-card:hover {
+    box-shadow: var(--shadow-sm);
+    border-color: #D1D5DB;
+}
+
+.product-card .remove-btn {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    background: transparent;
+    color: var(--danger);
+    border: none;
+    cursor: pointer;
+    font-size: 1.1rem;
+    padding: 4px;
+    border-radius: 4px;
+}
+.product-card .remove-btn:hover {
+    background: #FEE2E2;
+}
+
+
+/* Preview Panel */
+.preview-panel {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    background: var(--bg);
+    overflow-y: auto;
+}
+
+.action-bar {
+    height: 60px;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 40px;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+}
+
+.preview-title {
+    font-weight: 600;
+    color: var(--text-muted);
+}
+
+.actions {
+    display: flex;
+    gap: 12px;
+}
+
+.invoice-wrapper {
+    padding: 40px;
+    display: flex;
+    justify-content: center;
+}
+
+/* Invoice Paper styling for screen */
+.invoice-paper {
+    width: 210mm;
+    min-height: 297mm;
+    background: white;
+    box-shadow: var(--shadow-lg);
+    padding: 15mm;
+    color: #000;
+    position: relative;
+    border: 1px solid #ccc;
+    flex-shrink: 0;
+}
+
+/* Actual Invoice Design */
+.invoice-header {
+    display: flex;
+    justify-content: space-between;
+    border-bottom: 2px solid #000;
+    padding-bottom: 15px;
+    margin-bottom: 20px;
+}
+
+.b-info h1 {
+    font-size: 24px;
+    font-weight: 700;
+    text-transform: uppercase;
+    margin-bottom: 5px;
+    color: var(--primary);
+}
+
+.b-info p {
+    font-size: 12px;
+    line-height: 1.5;
+    color: #333;
+}
+
+.inv-title {
+    text-align: right;
+}
+
+.inv-title h2 {
+    font-size: 22px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    color: #333;
+    margin-bottom: 15px;
+}
+
+.inv-meta div {
+    font-size: 12px;
+    margin-bottom: 5px;
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+}
+
+.inv-meta span {
+    color: #555;
+}
+
+.bill-to {
+    margin-bottom: 20px;
+    padding: 10px;
+    background: #F8F9FA;
+    border: 1px solid #EEE;
+    border-radius: 4px;
+}
+
+.bill-to h3 {
+    font-size: 14px;
+    margin-bottom: 5px;
+    color: #555;
+    text-transform: uppercase;
+}
+
+.bill-to p {
+    font-size: 13px;
+    line-height: 1.4;
+    color: #111;
+}
+
+.invoice-items table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 20px;
+    font-size: 12px;
+}
+
+.invoice-items th, .invoice-items td {
+    border: 1px solid #000;
+    padding: 8px 6px;
+    text-align: right;
+}
+
+.invoice-items th {
+    background: #F1F5F9;
+    font-weight: 600;
+    text-align: center;
+}
+
+.invoice-items td:nth-child(2) {
+    text-align: left; /* Description */
+}
+.invoice-items td:nth-child(1) {
+    text-align: center; /* Sl */
+}
+
+.invoice-summary {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-top: 30px;
+    page-break-inside: avoid;
+}
+
+.amount-words {
+    width: 55%;
+    font-size: 12px;
+}
+
+.words-text {
+    font-weight: 600;
+    font-style: italic;
+    margin-top: 5px;
+    margin-bottom: 20px;
+    color: #111;
+}
+
+.terms {
+    margin-top: 20px;
+    font-size: 10px;
+    color: #555;
+}
+
+.terms ol {
+    margin-left: 15px;
+    margin-top: 5px;
+}
+
+.summary-table {
+    width: 40%;
+    font-size: 13px;
+}
+
+.summary-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 6px 0;
+    border-bottom: 1px solid #E2E8F0;
+}
+
+.grand-total {
+    font-size: 16px;
+    font-weight: 700;
+    border-bottom: 2px solid #000;
+    border-top: 2px solid #000;
+    margin-top: 5px;
+    padding: 10px 0;
+    color: var(--primary);
+}
+
+.signature {
+    margin-top: 40px;
+    text-align: center;
+    font-size: 12px;
+}
+
+.sign-space {
+    height: 60px;
+}
+
+.signature p:last-child {
+    border-top: 1px solid #000;
+    display: inline-block;
+    padding-top: 5px;
+}
+
+/* Responsive constraints */
+@media (max-width: 1024px) {
+    .app-container {
+        flex-direction: column;
+        overflow-y: auto;
+    }
+    .input-panel {
+        width: 100%;
+        min-width: unset;
+        height: auto;
+        border-right: none;
+        border-bottom: 1px solid var(--border);
+    }
+    .preview-panel {
+        overflow-y: visible;
+    }
+}
+
+/* Print Styles */
+@media print {
+    @page {
+        margin: 0;
+        size: auto;
+    }
+    body {
+        margin: 0;
+        background: white;
+    }
+    .app-container {
+        display: block;
+        height: auto;
+        overflow: visible;
+    }
+    .hide-on-print {
+        display: none !important;
+    }
+    .preview-panel {
+        background: white;
+        overflow: visible;
+    }
+    .invoice-wrapper {
+        padding: 0;
+    }
+    .invoice-paper {
+        margin: 0;
+        box-shadow: none;
+        border: none;
+        padding: 15mm;
+        width: 100%;
+        min-height: auto;
+    }
+}
