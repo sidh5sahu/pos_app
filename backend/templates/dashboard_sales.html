@@ -420,11 +420,14 @@
                     onchange="updateTotals()" style="width: 100%;">
             </div>
             
-            <div style="margin: 0.75rem 0;">
-                <select id="bill-type" onchange="updateTotals()" class="form-control" style="width: 100%; padding: 0.5rem; border-radius: 0.5rem; border: 1px solid var(--border); background: var(--bg-card); color: var(--text-primary); font-size: 0.875rem;">
-                    <option value="non-gst">📄 Non-GST Bill</option>
-                    <option value="gst">🏛️ GST Bill (18% Inclusive)</option>
-                </select>
+            <div style="margin: 0.75rem 0; display: flex; align-items: center; justify-content: space-between; background: var(--bg-card); padding: 0.75rem; border-radius: 0.5rem; border: 1px solid var(--border);">
+                <span style="font-size: 0.875rem; font-weight: 600; color: var(--text-primary);">🏛️ GST Invoice Mode</span>
+                <label style="position: relative; display: inline-block; width: 48px; height: 24px; cursor: pointer; margin: 0;">
+                    <input type="checkbox" id="gst-toggle" onchange="updateTotals(); toggleSwitchStyle(this)" style="display: none;">
+                    <span id="gst-slider" style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; background-color: #d1d5db; transition: .2s; border-radius: 24px; display: block;">
+                        <span id="gst-knob" style="position: absolute; height: 18px; width: 18px; left: 3px; bottom: 3px; background-color: white; transition: .2s; border-radius: 50%; display: block;"></span>
+                    </span>
+                </label>
             </div>
 
             <!-- Voucher Section -->
@@ -689,7 +692,8 @@
                 product_name: product.product_name,
                 price: product.selling_price,
                 quantity: 1,
-                max_stock: product.stock_quantity
+                max_stock: product.stock_quantity,
+                gst_rate: product.gst_rate !== undefined ? product.gst_rate : 18.0
             });
         }
         renderCart();
@@ -850,17 +854,25 @@
         document.getElementById('grand-total').textContent = formatCurrency(grandTotal);
 
         // GST Breakout
-        const billType = document.getElementById('bill-type').value;
-        if (billType === 'gst' && grandTotal > 0) {
-            const taxableValue = grandTotal / 1.18;
-            const gstAmount = grandTotal - taxableValue;
-            const cgst = gstAmount / 2;
-            const sgst = gstAmount / 2;
+        const isGst = document.getElementById('gst-toggle').checked;
+        if (isGst && grandTotal > 0) {
+            let totalCgst = 0;
+            let totalSgst = 0;
+            const discountFactor = subtotal > 0 ? (grandTotal / subtotal) : 1.0;
+
+            cart.forEach(item => {
+                const itemTotal = item.price * item.quantity;
+                const rate = item.gst_rate !== undefined ? item.gst_rate : 18.0;
+                const taxable = itemTotal / (1 + (rate / 100));
+                const gstAmount = itemTotal - taxable;
+                totalCgst += (gstAmount / 2) * discountFactor;
+                totalSgst += (gstAmount / 2) * discountFactor;
+            });
 
             document.getElementById('cgst-row').style.display = 'flex';
             document.getElementById('sgst-row').style.display = 'flex';
-            document.getElementById('cgst-display').textContent = formatCurrency(cgst);
-            document.getElementById('sgst-display').textContent = formatCurrency(sgst);
+            document.getElementById('cgst-display').textContent = formatCurrency(totalCgst);
+            document.getElementById('sgst-display').textContent = formatCurrency(totalSgst);
         } else {
             document.getElementById('cgst-row').style.display = 'none';
             document.getElementById('sgst-row').style.display = 'none';
@@ -925,6 +937,18 @@
         updateTotals();
     }
 
+    function toggleSwitchStyle(checkbox) {
+        const slider = document.getElementById('gst-slider');
+        const knob = document.getElementById('gst-knob');
+        if (checkbox.checked) {
+            slider.style.backgroundColor = 'var(--primary)';
+            knob.style.transform = 'translateX(24px)';
+        } else {
+            slider.style.backgroundColor = '#d1d5db';
+            knob.style.transform = 'translateX(0px)';
+        }
+    }
+
     async function checkout() {
         if (cart.length === 0) {
             showToast('Add items to cart first', 'warning');
@@ -943,7 +967,7 @@
                 customer_id: selectedCustomer ? selectedCustomer.id : null,
                 discount_percent: discountPercent,
                 payment_mode: paymentMode,
-                is_gst: document.getElementById('bill-type').value === 'gst'
+                is_gst: document.getElementById('gst-toggle').checked
             };
 
             const order = await api('/api/billing/orders', {

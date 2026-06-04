@@ -45,6 +45,7 @@ def generate_bill_pdf(order_data: dict) -> BytesIO:
     company_name = os.getenv("COMPANY_NAME", "Sales Billing System")
     company_address = os.getenv("COMPANY_ADDRESS", "")
     company_phone = os.getenv("COMPANY_PHONE", "")
+    company_gstin = os.getenv("COMPANY_GSTIN", "")
     
     elements = []
     styles = getSampleStyleSheet()
@@ -63,6 +64,8 @@ def generate_bill_pdf(order_data: dict) -> BytesIO:
         elements.append(Paragraph(company_address, ParagraphStyle('Address', alignment=1, fontSize=10)))
     if company_phone:
         elements.append(Paragraph(f"Phone: {company_phone}", ParagraphStyle('Phone', alignment=1, fontSize=10)))
+    if company_gstin:
+        elements.append(Paragraph(f"GSTIN: {company_gstin}", ParagraphStyle('GSTIN', alignment=1, fontSize=10, fontName='Helvetica-Bold')))
     
     elements.append(Spacer(1, 20))
     

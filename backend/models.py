@@ -51,6 +51,7 @@ class Product(Base):
     stock_quantity = Column(Integer, default=0)
     category = Column(String(100), nullable=True)
     unit = Column(String(50), default="pcs")  # pcs, kg, ltr, etc.
+    gst_rate = Column(Float, default=18.0)  # GST percentage (0, 5, 12, 18, 28)
     is_active = Column(Boolean, default=True)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)

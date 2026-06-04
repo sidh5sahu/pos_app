@@ -80,6 +80,8 @@ async def create_order(
     )
     
     subtotal = 0.0
+    total_cgst = 0.0
+    total_sgst = 0.0
     order_items = []
     
     for item in order.items:
@@ -103,6 +105,14 @@ async def create_order(
         if item.discount > 0:
             item_total -= item.discount
         
+        # Calculate item specific GST
+        if order.is_gst:
+            rate = product.gst_rate if product.gst_rate is not None else 18.0
+            taxable = item_total / (1 + (rate / 100))
+            gst_amount = item_total - taxable
+            total_cgst += gst_amount / 2
+            total_sgst += gst_amount / 2
+
         # Create order item
         order_item = models.OrderItem(
             product_id=product.id,
@@ -130,11 +140,10 @@ async def create_order(
     new_order.total_amount = total_amount
     
     if order.is_gst:
-        # Assuming 18% standard GST inclusive in retail price
-        taxable_value = total_amount / 1.18
-        gst_amount = total_amount - taxable_value
-        new_order.cgst = gst_amount / 2
-        new_order.sgst = gst_amount / 2
+        # Scale GST down based on any order-level discount
+        discount_factor = (total_amount / subtotal) if subtotal > 0 else 1.0
+        new_order.cgst = total_cgst * discount_factor
+        new_order.sgst = total_sgst * discount_factor
     else:
         new_order.cgst = 0.0
         new_order.sgst = 0.0

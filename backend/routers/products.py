@@ -22,6 +22,7 @@ class ProductCreate(BaseModel):
     stock_quantity: int = 0
     category: Optional[str] = None
     unit: str = "pcs"
+    gst_rate: float = 18.0
 
 
 class ProductUpdate(BaseModel):
@@ -32,6 +33,7 @@ class ProductUpdate(BaseModel):
     stock_quantity: Optional[int] = None
     category: Optional[str] = None
     unit: Optional[str] = None
+    gst_rate: Optional[float] = None
     is_active: Optional[bool] = None
 
 
@@ -49,6 +51,7 @@ class ProductResponse(BaseModel):
     stock_quantity: int
     category: Optional[str]
     unit: str
+    gst_rate: float
     is_active: bool
     created_at: datetime
     updated_at: datetime
@@ -111,7 +114,8 @@ async def search_products(
             "barcode": p.barcode,
             "selling_price": p.selling_price,
             "stock_quantity": p.stock_quantity,
-            "unit": p.unit
+            "unit": p.unit,
+            "gst_rate": p.gst_rate
         }
         for p in products
     ]
@@ -138,7 +142,8 @@ async def get_product_by_barcode(
         "barcode": product.barcode,
         "selling_price": product.selling_price,
         "stock_quantity": product.stock_quantity,
-        "unit": product.unit
+        "unit": product.unit,
+        "gst_rate": product.gst_rate
     }
 
 
