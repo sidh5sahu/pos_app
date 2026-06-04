@@ -27,6 +27,7 @@ class OrderCreate(BaseModel):
     discount_percent: float = 0.0
     discount_amount: float = 0.0
     payment_mode: str = "cash"  # cash, upi, card
+    is_gst: bool = False
     notes: Optional[str] = None
 
 
@@ -41,6 +42,9 @@ class OrderResponse(BaseModel):
     total_amount: float
     payment_mode: str
     status: str
+    is_gst: bool
+    cgst: float
+    sgst: float
     created_at: datetime
 
     class Config:
@@ -70,6 +74,7 @@ async def create_order(
         customer_id=order.customer_id,
         discount_percent=order.discount_percent,
         payment_mode=order.payment_mode,
+        is_gst=order.is_gst,
         notes=order.notes,
         status="completed"
     )
@@ -121,8 +126,19 @@ async def create_order(
         order_discount += (subtotal * order.discount_percent / 100)
     
     new_order.discount_amount = order_discount
-    new_order.total_amount = subtotal - order_discount
+    total_amount = subtotal - order_discount
+    new_order.total_amount = total_amount
     
+    if order.is_gst:
+        # Assuming 18% standard GST inclusive in retail price
+        taxable_value = total_amount / 1.18
+        gst_amount = total_amount - taxable_value
+        new_order.cgst = gst_amount / 2
+        new_order.sgst = gst_amount / 2
+    else:
+        new_order.cgst = 0.0
+        new_order.sgst = 0.0
+        
     # Add order and items
     new_order.items = order_items
     db.add(new_order)
@@ -232,6 +248,9 @@ async def get_order(
         "payment_mode": order.payment_mode,
         "payment_status": order.payment_status,
         "status": order.status,
+        "is_gst": order.is_gst,
+        "cgst": order.cgst,
+        "sgst": order.sgst,
         "notes": order.notes,
         "created_at": order.created_at,
         "verified_at": order.verified_at
@@ -292,6 +311,9 @@ async def print_order_pdf(
         "discount": order.discount_amount,
         "total": order.total_amount,
         "payment_mode": order.payment_mode,
+        "is_gst": order.is_gst,
+        "cgst": order.cgst,
+        "sgst": order.sgst,
         "salesperson": salesperson.name or salesperson.username if salesperson else ""
     }
     

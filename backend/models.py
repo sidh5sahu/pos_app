@@ -78,6 +78,10 @@ class Order(Base):
     payment_status = Column(String(20), default="paid")  # paid, pending, refunded
     status = Column(String(20), default="completed")  # pending, completed, verified, refunded
     
+    is_gst = Column(Boolean, default=False)
+    cgst = Column(Float, default=0.0)
+    sgst = Column(Float, default=0.0)
+    
     notes = Column(Text, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
     verified_at = Column(DateTime, nullable=True)

@@ -113,8 +113,11 @@ def generate_bill_pdf(order_data: dict) -> BytesIO:
     totals_data = [
         ["Subtotal:", f"Rs.{order_data.get('subtotal', 0):.2f}"],
         ["Discount:", f"Rs.{order_data.get('discount', 0):.2f}"],
-        ["Grand Total:", f"Rs.{order_data.get('total', 0):.2f}"],
     ]
+    if order_data.get("is_gst"):
+        totals_data.append(["CGST (9%):", f"Rs.{order_data.get('cgst', 0):.2f}"])
+        totals_data.append(["SGST (9%):", f"Rs.{order_data.get('sgst', 0):.2f}"])
+    totals_data.append(["Grand Total:", f"Rs.{order_data.get('total', 0):.2f}"])
     
     totals_table = Table(totals_data, colWidths=[400, 90])
     totals_table.setStyle(TableStyle([
@@ -180,6 +183,9 @@ def generate_thermal_receipt(order_data: dict) -> str:
     lines.append(f"{'Subtotal:':>22} {order_data.get('subtotal', 0):>8.2f}")
     if order_data.get('discount', 0) > 0:
         lines.append(f"{'Discount:':>22} {order_data.get('discount', 0):>8.2f}")
+    if order_data.get('is_gst'):
+        lines.append(f"{'CGST (9%):':>22} {order_data.get('cgst', 0):>8.2f}")
+        lines.append(f"{'SGST (9%):':>22} {order_data.get('sgst', 0):>8.2f}")
     lines.append(f"{'TOTAL:':>22} {order_data.get('total', 0):>8.2f}")
     lines.append(f"{'Payment:':>22} {order_data.get('payment_mode', 'Cash').upper():>8}")
     

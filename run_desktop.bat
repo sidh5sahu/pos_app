@@ -1,0 +1,6 @@
+@echo off
+echo Installing required POS Desktop components...
+pip install -r backend/requirements.txt
+echo Launching POS Desktop GUI Application...
+python backend/pos_desktop.py
+pause
