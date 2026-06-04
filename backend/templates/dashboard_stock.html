@@ -1,0 +1,156 @@
+{% extends "base.html" %}
+{% block title %}Stock Management{% endblock %}
+{% block content %}
+<div class="d-flex justify-between align-center mb-3">
+    <h1>📦 Stock Management</h1>
+    <button class="btn btn-primary" onclick="showAddProduct()">+ Add Product</button>
+</div>
+
+<div class="d-flex gap-2 mb-2">
+    <input type="text" class="form-control" id="product-search" placeholder="Search products..."
+        oninput="searchProducts()" style="max-width:400px">
+    <select class="form-control" id="category-filter" onchange="searchProducts()" style="max-width:200px">
+        <option value="">All Categories</option>
+    </select>
+</div>
+
+<div class="card">
+    <div class="table-container">
+        <table>
+            <thead>
+                <tr>
+                    <th>Product</th>
+                    <th>Barcode</th>
+                    <th>Category</th>
+                    <th>Purchase</th>
+                    <th>Selling</th>
+                    <th>Stock</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody id="products-table">
+                <tr>
+                    <td colspan="7" class="text-center">Loading...</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Pending Returns for Verification -->
+<div class="card mt-2">
+    <div class="card-title">↩️ Pending Returns - Stock Verification</div>
+    <div id="pending-returns">
+        <p class="text-muted">Loading...</p>
+    </div>
+</div>
+
+<div class="modal-overlay" id="product-modal">
+    <div class="modal">
+        <div class="modal-header">
+            <span class="modal-title" id="modal-title">Add Product</span>
+            <button class="modal-close" onclick="closeModal('product-modal')">&times;</button>
+        </div>
+        <form onsubmit="saveProduct(event)">
+            <input type="hidden" id="product-id">
+            <div class="form-group"><label>Name *</label><input type="text" class="form-control" id="product-name"
+                    required></div>
+            <div class="form-group"><label>Barcode</label><input type="text" class="form-control" id="product-barcode">
+            </div>
+            <div class="grid grid-2">
+                <div class="form-group"><label>Purchase Price *</label><input type="number" class="form-control"
+                        id="purchase-price" step="0.01" min="0" required></div>
+                <div class="form-group"><label>Selling Price *</label><input type="number" class="form-control"
+                        id="selling-price" step="0.01" min="0" required></div>
+            </div>
+            <div class="grid grid-2">
+                <div class="form-group"><label>Stock *</label><input type="number" class="form-control" id="stock-qty"
+                        min="0" required></div>
+                <div class="form-group"><label>Unit</label><select class="form-control" id="product-unit">
+                        <option value="pcs">Pieces</option>
+                        <option value="kg">Kg</option>
+                        <option value="ltr">Liter</option>
+                    </select></div>
+            </div>
+            <div class="form-group"><label>Category</label><input type="text" class="form-control"
+                    id="product-category"></div>
+            <button type="submit" class="btn btn-primary" style="width:100%">Save</button>
+        </form>
+    </div>
+</div>
+
+<div class="modal-overlay" id="adjust-modal">
+    <div class="modal">
+        <div class="modal-header"><span class="modal-title">Adjust Stock</span><button class="modal-close"
+                onclick="closeModal('adjust-modal')">&times;</button></div>
+        <form onsubmit="adjustStock(event)">
+            <input type="hidden" id="adjust-id">
+            <div class="form-group"><label>Product</label><input type="text" class="form-control" id="adjust-name"
+                    readonly></div>
+            <div class="form-group"><label>Current</label><input type="text" class="form-control" id="adjust-current"
+                    readonly></div>
+            <div class="form-group"><label>Adjustment (+/-)</label><input type="number" class="form-control"
+                    id="adjust-qty" required></div>
+            <div class="form-group"><label>Reason</label><select class="form-control" id="adjust-reason" required>
+                    <option value="">Select</option>
+                    <option value="Stock received">Stock received</option>
+                    <option value="Damage">Damage</option>
+                    <option value="Correction">Correction</option>
+                </select></div>
+            <button type="submit" class="btn btn-primary" style="width:100%">Adjust</button>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    let products = [], editId = null;
+    document.addEventListener('DOMContentLoaded', () => { loadProducts(); loadCategories(); loadPendingReturns() });
+    async function loadProducts() { products = await api('/api/products/?limit=500'); renderProducts(products) }
+    async function loadCategories() { try { const c = await api('/api/products/categories/list'); c.forEach(x => { document.getElementById('category-filter').innerHTML += `<option>${x}</option>` }) } catch (e) { } }
+    function renderProducts(p) { document.getElementById('products-table').innerHTML = p.length ? p.map(x => `<tr><td>${x.product_name}</td><td>${x.barcode || '-'}</td><td>${x.category || '-'}</td><td>${formatCurrency(x.purchase_price)}</td><td>${formatCurrency(x.selling_price)}</td><td class="${x.stock_quantity < 10 ? 'text-danger' : 'text-success'}">${x.stock_quantity} ${x.unit}</td><td><button class="btn btn-sm btn-secondary" onclick="editProduct(${x.id})">Edit</button> <button class="btn btn-sm btn-primary" onclick="showAdjust(${x.id})">Adjust</button></td></tr>`).join('') : '<tr><td colspan="7" class="text-center">No products</td></tr>' }
+    function searchProducts() { const s = document.getElementById('product-search').value.toLowerCase(), c = document.getElementById('category-filter').value; renderProducts(products.filter(p => (!s || p.product_name.toLowerCase().includes(s) || p.barcode?.includes(s)) && (!c || p.category === c))) }
+    function showAddProduct() { editId = null; document.getElementById('modal-title').textContent = 'Add Product';['product-id', 'product-name', 'product-barcode', 'purchase-price', 'selling-price', 'product-category'].forEach(id => document.getElementById(id).value = ''); document.getElementById('stock-qty').value = '0'; document.getElementById('product-modal').classList.add('active') }
+    async function editProduct(id) { const p = await api(`/api/products/${id}`); editId = id; document.getElementById('modal-title').textContent = 'Edit Product'; document.getElementById('product-name').value = p.product_name; document.getElementById('product-barcode').value = p.barcode || ''; document.getElementById('purchase-price').value = p.purchase_price; document.getElementById('selling-price').value = p.selling_price; document.getElementById('stock-qty').value = p.stock_quantity; document.getElementById('product-category').value = p.category || ''; document.getElementById('product-modal').classList.add('active') }
+    function closeModal(id) { document.getElementById(id).classList.remove('active') }
+    async function saveProduct(e) { e.preventDefault(); const d = { product_name: document.getElementById('product-name').value, barcode: document.getElementById('product-barcode').value || null, purchase_price: +document.getElementById('purchase-price').value, selling_price: +document.getElementById('selling-price').value, stock_quantity: +document.getElementById('stock-qty').value, unit: document.getElementById('product-unit').value, category: document.getElementById('product-category').value || null }; try { editId ? await api(`/api/products/${editId}`, { method: 'PUT', body: JSON.stringify(d) }) : await api('/api/products/', { method: 'POST', body: JSON.stringify(d) }); showToast('Saved', 'success'); closeModal('product-modal'); loadProducts() } catch (e) { showToast(e.message, 'error') } }
+    function showAdjust(id) { const p = products.find(x => x.id === id); document.getElementById('adjust-id').value = id; document.getElementById('adjust-name').value = p.product_name; document.getElementById('adjust-current').value = p.stock_quantity; document.getElementById('adjust-qty').value = ''; document.getElementById('adjust-modal').classList.add('active') }
+    async function adjustStock(e) { e.preventDefault(); try { await api(`/api/products/${document.getElementById('adjust-id').value}/adjust-stock`, { method: 'POST', body: JSON.stringify({ quantity: +document.getElementById('adjust-qty').value, reason: document.getElementById('adjust-reason').value }) }); showToast('Adjusted', 'success'); closeModal('adjust-modal'); loadProducts() } catch (e) { showToast(e.message, 'error') } }
+
+    // Pending Returns for Stock Verification
+    async function loadPendingReturns() {
+        try {
+            const returns = await api('/api/returns/?status=pending_verification');
+            const container = document.getElementById('pending-returns');
+            if (returns.length === 0) {
+                container.innerHTML = '<p class="text-muted">No pending returns</p>';
+                return;
+            }
+            let html = '<table><thead><tr><th>ID</th><th>Product</th><th>Qty</th><th>Reason</th><th>Actions</th></tr></thead><tbody>';
+            for (const r of returns) {
+                const d = await api(`/api/returns/${r.id}`);
+                html += `<tr>
+                    <td>#${r.id}</td>
+                    <td>${d.product_name}</td>
+                    <td>${r.quantity}</td>
+                    <td>${r.reason || '-'}</td>
+                    <td><button class="btn btn-sm btn-success" onclick="verifyStock(${r.id})">✓ Verify Stock</button></td>
+                </tr>`;
+            }
+            html += '</tbody></table>';
+            container.innerHTML = html;
+        } catch (e) { console.error(e); }
+    }
+
+    async function verifyStock(returnId) {
+        if (!confirm('Confirm stock has been received and verified?')) return;
+        try {
+            await api(`/api/returns/${returnId}/verify-stock`, { method: 'POST', body: JSON.stringify({}) });
+            showToast('Stock verified!', 'success');
+            loadPendingReturns();
+            loadProducts();
+        } catch (e) { showToast(e.message, 'error'); }
+    }
+</script>
+{% endblock %}

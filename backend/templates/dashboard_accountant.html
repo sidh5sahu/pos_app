@@ -1,0 +1,573 @@
+{% extends "base.html" %}
+
+{% block title %}Accountant Dashboard{% endblock %}
+
+{% block extra_styles %}
+<style>
+    .dashboard-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1.5rem;
+    }
+
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 1rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .stat-card {
+        background: var(--bg-secondary);
+        border: 1px solid var(--border);
+        border-radius: 1rem;
+        padding: 1.25rem;
+    }
+
+    .stat-card .icon {
+        font-size: 2rem;
+        margin-bottom: 0.5rem;
+    }
+
+    .stat-card .value {
+        font-size: 1.5rem;
+        font-weight: 700;
+    }
+
+    .stat-card .label {
+        color: var(--text-secondary);
+        font-size: 0.875rem;
+    }
+
+    .tabs {
+        display: flex;
+        gap: 0.5rem;
+        margin-bottom: 1.5rem;
+        border-bottom: 1px solid var(--border);
+        padding-bottom: 0.5rem;
+    }
+
+    .tab {
+        padding: 0.75rem 1.5rem;
+        background: none;
+        border: none;
+        color: var(--text-secondary);
+        cursor: pointer;
+        font-weight: 500;
+        border-radius: 0.5rem 0.5rem 0 0;
+        transition: all 0.2s;
+    }
+
+    .tab:hover {
+        background: var(--bg-card);
+    }
+
+    .tab.active {
+        background: var(--primary);
+        color: white;
+    }
+
+    .tab-content {
+        display: none;
+    }
+
+    .tab-content.active {
+        display: block;
+    }
+
+    .filters {
+        display: flex;
+        gap: 1rem;
+        margin-bottom: 1rem;
+        flex-wrap: wrap;
+    }
+
+    .filters .form-group {
+        margin: 0;
+    }
+
+    @media (max-width: 768px) {
+        .stats-grid {
+            grid-template-columns: repeat(2, 1fr);
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="dashboard-header">
+    <h1>📊 Accountant Dashboard</h1>
+    <div class="d-flex gap-1">
+        <button class="btn btn-secondary" onclick="loadDailyReport()">📅 Daily Report</button>
+        <button class="btn btn-secondary" onclick="loadMonthlyReport()">📆 Monthly Report</button>
+    </div>
+</div>
+
+<!-- Stats -->
+<div class="stats-grid" id="stats">
+    <div class="stat-card">
+        <div class="icon">💰</div>
+        <div class="value" id="today-sales">₹0</div>
+        <div class="label">Today's Sales</div>
+    </div>
+    <div class="stat-card">
+        <div class="icon">🧾</div>
+        <div class="value" id="today-orders">0</div>
+        <div class="label">Orders Today</div>
+    </div>
+    <div class="stat-card">
+        <div class="icon">↩️</div>
+        <div class="value" id="pending-returns">0</div>
+        <div class="label">Pending Returns</div>
+    </div>
+    <div class="stat-card">
+        <div class="icon">💵</div>
+        <div class="value" id="cash-sales">₹0</div>
+        <div class="label">Cash Sales</div>
+    </div>
+</div>
+
+<!-- Tabs -->
+<div class="tabs">
+    <button class="tab active" onclick="showTab('orders')">📋 Orders</button>
+    <button class="tab" onclick="showTab('returns')">↩️ Returns</button>
+    <button class="tab" onclick="showTab('reports')">📊 Reports</button>
+</div>
+
+<!-- Orders Tab -->
+<div class="tab-content active" id="orders-tab">
+    <div class="card">
+        <div class="card-title">Recent Orders</div>
+        <div class="filters">
+            <div class="form-group">
+                <label>Status</label>
+                <select class="form-control" id="order-status-filter" onchange="loadOrders()">
+                    <option value="">All</option>
+                    <option value="completed">Completed</option>
+                    <option value="verified">Verified</option>
+                    <option value="refunded">Refunded</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Payment</label>
+                <select class="form-control" id="payment-filter" onchange="loadOrders()">
+                    <option value="">All</option>
+                    <option value="cash">Cash</option>
+                    <option value="upi">UPI</option>
+                    <option value="card">Card</option>
+                </select>
+            </div>
+        </div>
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Bill #</th>
+                        <th>Date</th>
+                        <th>Amount</th>
+                        <th>Payment</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="orders-table">
+                    <tr>
+                        <td colspan="6" class="text-center">Loading...</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Returns Tab -->
+<div class="tab-content" id="returns-tab">
+    <div class="card">
+        <div class="d-flex justify-between align-center mb-2">
+            <div class="card-title">Returns & Refunds</div>
+            <button class="btn btn-primary" onclick="showCreateReturn()">+ New Return</button>
+        </div>
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Bill #</th>
+                        <th>Product</th>
+                        <th>Qty</th>
+                        <th>Refund</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="returns-table">
+                    <tr>
+                        <td colspan="7" class="text-center">Loading...</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Reports Tab -->
+<div class="tab-content" id="reports-tab">
+    <div class="grid grid-2">
+        <div class="card">
+            <div class="card-title">📅 Daily Report</div>
+            <div class="form-group">
+                <label>Select Date</label>
+                <input type="date" class="form-control" id="daily-report-date" onchange="loadDailyReport()">
+            </div>
+            <div id="daily-report-content">
+                <p class="text-muted">Select a date to view report</p>
+            </div>
+        </div>
+        <div class="card">
+            <div class="card-title">💹 Profit/Loss Report</div>
+            <div class="form-group">
+                <label>From</label>
+                <input type="date" class="form-control" id="pnl-from">
+            </div>
+            <div class="form-group">
+                <label>To</label>
+                <input type="date" class="form-control" id="pnl-to">
+            </div>
+            <button class="btn btn-primary" onclick="loadPnLReport()">Generate Report</button>
+            <div id="pnl-report-content" class="mt-2"></div>
+        </div>
+    </div>
+</div>
+
+<!-- Return Modal -->
+<div class="modal-overlay" id="return-modal">
+    <div class="modal">
+        <div class="modal-header">
+            <span class="modal-title">Create Return</span>
+            <button class="modal-close" onclick="closeReturnModal()">&times;</button>
+        </div>
+        <form onsubmit="createReturn(event)">
+            <div class="form-group">
+                <label>Bill Number</label>
+                <div class="d-flex gap-1">
+                    <input type="text" class="form-control" id="return-bill" placeholder="Enter bill number">
+                    <button type="button" class="btn btn-secondary" onclick="searchBill()">Search</button>
+                </div>
+            </div>
+            <div id="bill-details" style="display: none;">
+                <div class="form-group">
+                    <label>Product</label>
+                    <select class="form-control" id="return-product" required></select>
+                </div>
+                <div class="form-group">
+                    <label>Quantity</label>
+                    <input type="number" class="form-control" id="return-qty" min="1" required>
+                </div>
+                <div class="form-group">
+                    <label>Reason</label>
+                    <textarea class="form-control" id="return-reason" rows="2" required></textarea>
+                </div>
+                <button type="submit" class="btn btn-primary" style="width: 100%;">Create Return</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Order Details Modal -->
+<div class="modal-overlay" id="order-modal">
+    <div class="modal" style="max-width: 600px;">
+        <div class="modal-header">
+            <span class="modal-title">Order Details</span>
+            <button class="modal-close" onclick="closeOrderModal()">&times;</button>
+        </div>
+        <div id="order-details-content"></div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    let currentBillId = null;
+
+    document.addEventListener('DOMContentLoaded', async () => {
+        await loadStats();
+        await loadOrders();
+        await loadReturns();
+
+        // Set default date
+        document.getElementById('daily-report-date').value = new Date().toISOString().split('T')[0];
+    });
+
+    function showTab(tabName) {
+        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+        document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+
+        document.querySelector(`.tab[onclick*="${tabName}"]`).classList.add('active');
+        document.getElementById(`${tabName}-tab`).classList.add('active');
+    }
+
+    async function loadStats() {
+        try {
+            const report = await api('/api/reports/daily');
+            document.getElementById('today-sales').textContent = formatCurrency(report.summary.total_sales);
+            document.getElementById('today-orders').textContent = report.summary.total_orders;
+            document.getElementById('cash-sales').textContent = formatCurrency(report.payment_breakdown.cash);
+
+            const returns = await api('/api/returns/?status=pending');
+            document.getElementById('pending-returns').textContent = returns.length;
+        } catch (error) {
+            console.error('Failed to load stats:', error);
+        }
+    }
+
+    async function loadOrders() {
+        try {
+            const status = document.getElementById('order-status-filter').value;
+            const payment = document.getElementById('payment-filter').value;
+
+            let url = '/api/billing/orders?limit=50';
+            if (status) url += `&status=${status}`;
+            if (payment) url += `&payment_mode=${payment}`;
+
+            const orders = await api(url);
+
+            const tbody = document.getElementById('orders-table');
+            if (orders.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted">No orders found</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = orders.map(o => `
+                <tr>
+                    <td><a href="#" onclick="viewOrder(${o.id})">${o.bill_number}</a></td>
+                    <td>${formatDate(o.created_at)}</td>
+                    <td class="fw-bold">${formatCurrency(o.total_amount)}</td>
+                    <td><span class="badge badge-info">${o.payment_mode.toUpperCase()}</span></td>
+                    <td><span class="badge badge-${o.status === 'verified' ? 'success' : o.status === 'refunded' ? 'danger' : 'warning'}">${o.status}</span></td>
+                    <td>
+                        ${o.status === 'completed' ? `<button class="btn btn-sm btn-success" onclick="verifyOrder(${o.id})">✓ Verify</button>` : ''}
+                        <button class="btn btn-sm btn-secondary" onclick="printOrder(${o.id})">🖨️</button>
+                    </td>
+                </tr>
+            `).join('');
+        } catch (error) {
+            showToast('Failed to load orders', 'error');
+        }
+    }
+
+    async function loadReturns() {
+        try {
+            const returns = await api('/api/returns/?status=stock_verified');
+            const tbody = document.getElementById('returns-table');
+
+            if (returns.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="7" class="text-center text-muted">No returns awaiting refund approval</td></tr>';
+                return;
+            }
+
+            // Get details for each return
+            const rows = [];
+            for (const r of returns) {
+                const details = await api(`/api/returns/${r.id}`);
+                rows.push(`
+                    <tr>
+                        <td>#${r.id}</td>
+                        <td>${details.bill_number || 'N/A'}</td>
+                        <td>${details.product_name}</td>
+                        <td>${r.quantity}</td>
+                        <td>${formatCurrency(r.refund_amount)}</td>
+                        <td><span class="badge badge-info">${r.status.replace('_', ' ')}</span></td>
+                        <td>
+                            <button class="btn btn-sm btn-success" onclick="processRefund(${r.id}, 'refund_approved')">💵 Approve</button>
+                            <button class="btn btn-sm btn-danger" onclick="processRefund(${r.id}, 'rejected')">✕ Reject</button>
+                        </td>
+                    </tr>
+                `);
+            }
+            tbody.innerHTML = rows.join('');
+        } catch (error) {
+            showToast('Failed to load returns', 'error');
+        }
+    }
+
+    async function viewOrder(orderId) {
+        try {
+            const order = await api(`/api/billing/orders/${orderId}`);
+            const content = document.getElementById('order-details-content');
+
+            content.innerHTML = `
+                <div style="margin-bottom: 1rem;">
+                    <strong>Bill #:</strong> ${order.bill_number}<br>
+                    <strong>Date:</strong> ${formatDate(order.created_at)}<br>
+                    <strong>Salesperson:</strong> ${order.salesperson?.name || 'N/A'}<br>
+                    <strong>Status:</strong> <span class="badge badge-${order.status === 'verified' ? 'success' : 'warning'}">${order.status}</span>
+                </div>
+                <table style="width: 100%; margin-bottom: 1rem;">
+                    <thead>
+                        <tr><th>Product</th><th>Qty</th><th>Price</th><th>Total</th></tr>
+                    </thead>
+                    <tbody>
+                        ${order.items.map(i => `
+                            <tr>
+                                <td>${i.product_name}</td>
+                                <td>${i.quantity}</td>
+                                <td>${formatCurrency(i.unit_price)}</td>
+                                <td>${formatCurrency(i.total)}</td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+                <div class="text-right">
+                    <div>Subtotal: ${formatCurrency(order.subtotal)}</div>
+                    <div>Discount: -${formatCurrency(order.discount_amount)}</div>
+                    <div class="fw-bold" style="font-size: 1.25rem;">Total: ${formatCurrency(order.total_amount)}</div>
+                </div>
+            `;
+
+            document.getElementById('order-modal').classList.add('active');
+        } catch (error) {
+            showToast('Failed to load order', 'error');
+        }
+    }
+
+    function closeOrderModal() {
+        document.getElementById('order-modal').classList.remove('active');
+    }
+
+    async function verifyOrder(orderId) {
+        if (!confirm('Verify this order?')) return;
+        try {
+            await api(`/api/returns/orders/${orderId}/verify`, { method: 'POST' });
+            showToast('Order verified', 'success');
+            await loadOrders();
+        } catch (error) {
+            showToast(error.message, 'error');
+        }
+    }
+
+    function printOrder(orderId) {
+        const token = localStorage.getItem('token');
+        window.open(`/api/billing/orders/${orderId}/print-pdf?token=${token}`, '_blank');
+    }
+
+    function showCreateReturn() {
+        document.getElementById('return-modal').classList.add('active');
+        document.getElementById('bill-details').style.display = 'none';
+    }
+
+    function closeReturnModal() {
+        document.getElementById('return-modal').classList.remove('active');
+    }
+
+    async function searchBill() {
+        const billNumber = document.getElementById('return-bill').value;
+        if (!billNumber) return;
+
+        try {
+            const order = await api(`/api/billing/orders/by-bill/${billNumber}`);
+            currentBillId = order.id;
+
+            const select = document.getElementById('return-product');
+            select.innerHTML = order.items.map(i =>
+                `<option value="${i.product_id}" data-max="${i.quantity}">${i.product_name} (Qty: ${i.quantity})</option>`
+            ).join('');
+
+            document.getElementById('bill-details').style.display = 'block';
+            showToast('Bill found', 'success');
+        } catch (error) {
+            showToast('Bill not found', 'error');
+        }
+    }
+
+    async function createReturn(e) {
+        e.preventDefault();
+        if (!currentBillId) return;
+
+        try {
+            await api('/api/returns/', {
+                method: 'POST',
+                body: JSON.stringify({
+                    order_id: currentBillId,
+                    product_id: parseInt(document.getElementById('return-product').value),
+                    quantity: parseInt(document.getElementById('return-qty').value),
+                    reason: document.getElementById('return-reason').value
+                })
+            });
+
+            showToast('Return created', 'success');
+            closeReturnModal();
+            await loadReturns();
+            await loadStats();
+        } catch (error) {
+            showToast(error.message, 'error');
+        }
+    }
+
+    async function processRefund(returnId, status) {
+        const action = status === 'refund_approved' ? 'Approve refund' : 'Reject';
+        if (!confirm(`${action} for this return?`)) return;
+
+        try {
+            await api(`/api/returns/${returnId}/process-refund`, {
+                method: 'POST',
+                body: JSON.stringify({ status, refund_type: 'cash' })
+            });
+
+            showToast(`Refund ${status.replace('_', ' ')}`, 'success');
+            await loadReturns();
+            await loadStats();
+        } catch (error) {
+            showToast(error.message, 'error');
+        }
+    }
+
+    async function loadDailyReport() {
+        const date = document.getElementById('daily-report-date').value;
+        if (!date) return;
+
+        try {
+            const report = await api(`/api/reports/daily?date=${date}`);
+            document.getElementById('daily-report-content').innerHTML = `
+                <div class="mt-2">
+                    <strong>Date:</strong> ${report.date}<br>
+                    <strong>Total Orders:</strong> ${report.summary.total_orders}<br>
+                    <strong>Total Sales:</strong> ${formatCurrency(report.summary.total_sales)}<br>
+                    <strong>Refunds:</strong> ${formatCurrency(report.summary.total_refunds)}<br>
+                    <strong>Net Sales:</strong> ${formatCurrency(report.summary.net_sales)}<br>
+                    <hr>
+                    <strong>Payment Breakdown:</strong><br>
+                    Cash: ${formatCurrency(report.payment_breakdown.cash)}<br>
+                    UPI: ${formatCurrency(report.payment_breakdown.upi)}<br>
+                    Card: ${formatCurrency(report.payment_breakdown.card)}
+                </div>
+            `;
+        } catch (error) {
+            showToast('Failed to load report', 'error');
+        }
+    }
+
+    async function loadPnLReport() {
+        const from = document.getElementById('pnl-from').value;
+        const to = document.getElementById('pnl-to').value;
+
+        try {
+            let url = '/api/reports/profit-loss';
+            if (from) url += `?date_from=${from}`;
+            if (to) url += `${from ? '&' : '?'}date_to=${to}`;
+
+            const report = await api(url);
+            document.getElementById('pnl-report-content').innerHTML = `
+                <div class="mt-2">
+                    <strong>Total Revenue:</strong> ${formatCurrency(report.summary.total_revenue)}<br>
+                    <strong>Total Cost:</strong> ${formatCurrency(report.summary.total_cost)}<br>
+                    <strong>Gross Profit:</strong> <span class="${report.summary.gross_profit >= 0 ? 'text-success' : 'text-danger'}">${formatCurrency(report.summary.gross_profit)}</span><br>
+                    <strong>Margin:</strong> ${report.summary.profit_margin_percent}%
+                </div>
+            `;
+        } catch (error) {
+            showToast('Failed to load report', 'error');
+        }
+    }
+</script>
+{% endblock %}

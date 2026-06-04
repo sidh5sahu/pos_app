@@ -1,0 +1,728 @@
+{% extends "base.html" %}
+{% block title %}Admin Dashboard{% endblock %}
+
+{% block extra_styles %}
+<style>
+    .tabs {
+        display: flex;
+        gap: 0.5rem;
+        margin-bottom: 1.5rem;
+        border-bottom: 2px solid var(--border);
+    }
+
+    .tab {
+        padding: 0.75rem 1.5rem;
+        background: transparent;
+        border: none;
+        color: var(--text-secondary);
+        cursor: pointer;
+        font-weight: 500;
+        border-bottom: 2px solid transparent;
+        margin-bottom: -2px;
+        transition: all 0.2s;
+    }
+
+    .tab.active {
+        color: var(--primary);
+        border-bottom-color: var(--primary);
+    }
+
+    .tab-content {
+        display: none;
+    }
+
+    .tab-content.active {
+        display: block;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-between align-center mb-3">
+    <h1>🛠️ Admin Dashboard</h1>
+    <button class="btn btn-secondary" onclick="backupDb()">💾 Backup Database</button>
+</div>
+
+<div class="grid grid-4 mb-3" id="stats">
+    <div class="card">
+        <div style="font-size:2rem">👥</div>
+        <div class="fw-bold" style="font-size:1.5rem" id="user-count">0</div>
+        <div class="text-muted">Users</div>
+    </div>
+    <div class="card">
+        <div style="font-size:2rem">📦</div>
+        <div class="fw-bold" style="font-size:1.5rem" id="product-count">0</div>
+        <div class="text-muted">Products</div>
+    </div>
+    <div class="card">
+        <div style="font-size:2rem">🧾</div>
+        <div class="fw-bold" style="font-size:1.5rem" id="order-count">0</div>
+        <div class="text-muted">Orders</div>
+    </div>
+    <div class="card">
+        <div style="font-size:2rem">💰</div>
+        <div class="fw-bold" style="font-size:1.5rem" id="total-sales">₹0</div>
+        <div class="text-muted">Total Sales</div>
+    </div>
+</div>
+
+<!-- Tabs -->
+<div class="tabs">
+    <button class="tab active" onclick="switchTab('users')">👥 Users</button>
+    <button class="tab" onclick="switchTab('vouchers')">🎟️ Vouchers</button>
+    <button class="tab" onclick="switchTab('customers')">🧑‍🤝‍🧑 Customers</button>
+    <button class="tab" onclick="switchTab('logs')">📋 Audit Logs</button>
+</div>
+
+<!-- Users Tab -->
+<div id="users-tab" class="tab-content active">
+    <div class="card">
+        <div class="d-flex justify-between align-center mb-2">
+            <div class="card-title">👥 User Management</div>
+            <button class="btn btn-primary btn-sm" onclick="showAddUser()">+ Add User</button>
+        </div>
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Username</th>
+                        <th>Name</th>
+                        <th>Role</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="users-table">
+                    <tr>
+                        <td colspan="5">Loading...</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Vouchers Tab -->
+<div id="vouchers-tab" class="tab-content">
+    <div class="card">
+        <div class="d-flex justify-between align-center mb-2">
+            <div class="card-title">🎟️ Credit Vouchers</div>
+            <button class="btn btn-primary btn-sm" onclick="showCreateVoucher()">+ Create Voucher</button>
+        </div>
+        <div style="display: flex; gap: 1rem; margin-bottom: 1rem;">
+            <select id="voucher-filter" class="form-control" style="max-width: 200px;" onchange="loadVouchers()">
+                <option value="">All Vouchers</option>
+                <option value="active">Active</option>
+                <option value="redeemed">Redeemed</option>
+                <option value="expired">Expired</option>
+            </select>
+        </div>
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Voucher Code</th>
+                        <th>Amount</th>
+                        <th>Customer</th>
+                        <th>Issued</th>
+                        <th>Expires</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="vouchers-table">
+                    <tr>
+                        <td colspan="7">Loading...</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Customers Tab -->
+<div id="customers-tab" class="tab-content">
+    <div class="card">
+        <div class="d-flex justify-between align-center mb-2">
+            <div class="card-title">🧑‍🤝‍🧑 Customer Management</div>
+            <button class="btn btn-primary btn-sm" onclick="showAddCustomer()">+ Add Customer</button>
+        </div>
+        <div style="margin-bottom: 1rem;">
+            <input type="text" id="customer-search" class="form-control"
+                placeholder="Search customers by name or mobile..." oninput="searchCustomers()"
+                style="max-width: 400px;">
+        </div>
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Mobile</th>
+                        <th>Email</th>
+                        <th>Orders</th>
+                        <th>Total Spent</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="customers-table">
+                    <tr>
+                        <td colspan="6">Search for customers...</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Audit Logs Tab -->
+<div id="logs-tab" class="tab-content">
+    <div class="card">
+        <div class="card-title">📋 Audit Logs</div>
+        <div class="table-container" style="max-height:400px;overflow:auto">
+            <table>
+                <thead>
+                    <tr>
+                        <th>User</th>
+                        <th>Action</th>
+                        <th>Description</th>
+                        <th>Time</th>
+                    </tr>
+                </thead>
+                <tbody id="logs-table">
+                    <tr>
+                        <td colspan="4">Loading...</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- User Modal -->
+<div class="modal-overlay" id="user-modal">
+    <div class="modal">
+        <div class="modal-header"><span class="modal-title" id="user-modal-title">Add User</span><button
+                class="modal-close" onclick="closeModal('user-modal')">&times;</button></div>
+        <form onsubmit="saveUser(event)">
+            <input type="hidden" id="user-id">
+            <div class="form-group"><label>Username *</label><input type="text" class="form-control" id="user-username"
+                    required></div>
+            <div class="form-group"><label>Full Name</label><input type="text" class="form-control" id="user-name">
+            </div>
+            <div class="form-group" id="password-group"><label>Password *</label><input type="password"
+                    class="form-control" id="user-password"></div>
+            <div class="form-group"><label>Role *</label><select class="form-control" id="user-role" required>
+                    <option value="sales">Sales</option>
+                    <option value="inventory">Stock Operator</option>
+                    <option value="accounts">Accountant</option>
+                    <option value="admin">Admin</option>
+                </select></div>
+            <div class="form-group"><label>IP Restriction</label><input type="text" class="form-control" id="user-ip"
+                    placeholder="Leave empty for no restriction"></div>
+            <button type="submit" class="btn btn-primary" style="width:100%">Save User</button>
+        </form>
+    </div>
+</div>
+
+<!-- Create Voucher Modal -->
+<div class="modal-overlay" id="voucher-modal">
+    <div class="modal">
+        <div class="modal-header">
+            <span class="modal-title">🎟️ Create Credit Voucher</span>
+            <button class="modal-close" onclick="closeModal('voucher-modal')">&times;</button>
+        </div>
+        <form onsubmit="createVoucher(event)">
+            <div class="form-group">
+                <label>Amount *</label>
+                <input type="number" class="form-control" id="voucher-amount" step="0.01" min="1" required>
+            </div>
+            <div class="form-group">
+                <label>Customer (Optional)</label>
+                <input type="text" class="form-control" id="voucher-customer-search" placeholder="Search customer..."
+                    oninput="searchVoucherCustomers()">
+                <input type="hidden" id="voucher-customer-id">
+                <div id="voucher-customer-results"
+                    style="max-height: 150px; overflow-y: auto; border: 1px solid var(--border); border-radius: 0.5rem; margin-top: 0.5rem; display: none;">
+                </div>
+            </div>
+            <div class="form-group">
+                <label>Validity Period</label>
+                <select class="form-control" id="voucher-days">
+                    <option value="30">30 Days (Default)</option>
+                    <option value="60">60 Days</option>
+                    <option value="90">90 Days</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Reason/Notes</label>
+                <textarea class="form-control" id="voucher-reason" rows="2"
+                    placeholder="e.g., Promotional offer, Customer compensation"></textarea>
+            </div>
+            <button type="submit" class="btn btn-primary" style="width:100%">Create Voucher</button>
+        </form>
+    </div>
+</div>
+
+<!-- Customer Details Modal -->
+<div class="modal-overlay" id="customer-details-modal">
+    <div class="modal" style="max-width: 700px;">
+        <div class="modal-header">
+            <span class="modal-title">👤 Customer Details</span>
+            <button class="modal-close" onclick="closeModal('customer-details-modal')">&times;</button>
+        </div>
+        <div id="customer-details-content">
+            <!-- Loaded via JavaScript -->
+        </div>
+    </div>
+</div>
+
+<!-- Add/Edit Customer Modal -->
+<div class="modal-overlay" id="customer-modal">
+    <div class="modal">
+        <div class="modal-header">
+            <span class="modal-title" id="customer-modal-title">Add Customer</span>
+            <button class="modal-close" onclick="closeModal('customer-modal')">&times;</button>
+        </div>
+        <form onsubmit="saveCustomer(event)">
+            <input type="hidden" id="customer-id">
+            <div class="form-group">
+                <label>Name *</label>
+                <input type="text" class="form-control" id="customer-name" required>
+            </div>
+            <div class="form-group">
+                <label>Mobile</label>
+                <input type="tel" class="form-control" id="customer-mobile" placeholder="+91 1234567890">
+            </div>
+            <div class="form-group">
+                <label>Email</label>
+                <input type="email" class="form-control" id="customer-email">
+            </div>
+            <div class="form-group">
+                <label>Address</label>
+                <textarea class="form-control" id="customer-address" rows="3"></textarea>
+            </div>
+            <button type="submit" class="btn btn-primary" style="width:100%">Save Customer</button>
+        </form>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    let users = [], editUserId = null;
+    let currentTab = 'users';
+
+    document.addEventListener('DOMContentLoaded', () => {
+        loadStats();
+        loadUsers();
+        loadLogs();
+    });
+
+    function switchTab(tab) {
+        currentTab = tab;
+        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+        document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+
+        event.target.classList.add('active');
+        document.getElementById(`${tab}-tab`).classList.add('active');
+
+        // Load data when switching to tab
+        if (tab === 'vouchers') loadVouchers();
+        if (tab === 'customers') searchCustomers();
+    }
+
+    async function loadStats() {
+        try {
+            const p = await api('/api/products/?limit=1');
+            const o = await api('/api/billing/orders?limit=500');
+            const u = await api('/api/admin/users');
+            document.getElementById('user-count').textContent = u.length;
+            document.getElementById('product-count').textContent = p.length || '0+';
+            document.getElementById('order-count').textContent = o.length;
+            document.getElementById('total-sales').textContent = formatCurrency(o.reduce((s, x) => s + x.total_amount, 0));
+        } catch (e) { }
+    }
+
+    async function loadUsers() {
+        try {
+            users = await api('/api/admin/users');
+            document.getElementById('users-table').innerHTML = users.map(u => `<tr><td>${u.username}</td><td>${u.name || '-'}</td><td><span class="badge badge-info">${u.role}</span></td><td><span class="badge badge-${u.is_active ? 'success' : 'danger'}">${u.is_active ? 'Active' : 'Inactive'}</span></td><td><button class="btn btn-sm btn-secondary" onclick="editUser(${u.id})">Edit</button></td></tr>`).join('');
+        } catch (e) {
+            showToast('Failed to load users', 'error');
+        }
+    }
+
+    async function loadLogs() {
+        try {
+            const logs = await api('/api/admin/audit-logs?limit=50');
+            document.getElementById('logs-table').innerHTML = logs.map(l => `<tr><td>${l.user}</td><td><span class="badge badge-info">${l.action}</span></td><td>${l.description || '-'}</td><td>${formatDate(l.created_at)}</td></tr>`).join('');
+        } catch (e) { }
+    }
+
+    function showAddUser() {
+        editUserId = null;
+        document.getElementById('user-modal-title').textContent = 'Add User';
+        document.getElementById('password-group').style.display = 'block';
+        ['user-id', 'user-username', 'user-name', 'user-password', 'user-ip'].forEach(id => document.getElementById(id).value = '');
+        document.getElementById('user-role').value = 'sales';
+        document.getElementById('user-modal').classList.add('active');
+    }
+
+    async function editUser(id) {
+        const u = users.find(x => x.id === id);
+        editUserId = id;
+        document.getElementById('user-modal-title').textContent = 'Edit User';
+        document.getElementById('password-group').style.display = 'none';
+        document.getElementById('user-username').value = u.username;
+        document.getElementById('user-name').value = u.name || '';
+        document.getElementById('user-role').value = u.role;
+        document.getElementById('user-ip').value = u.ip_address || '';
+        document.getElementById('user-modal').classList.add('active');
+    }
+
+    function closeModal(id) {
+        document.getElementById(id).classList.remove('active');
+    }
+
+    async function saveUser(e) {
+        e.preventDefault();
+        const d = {
+            username: document.getElementById('user-username').value,
+            name: document.getElementById('user-name').value || null,
+            role: document.getElementById('user-role').value,
+            ip_address: document.getElementById('user-ip').value || null
+        };
+        if (!editUserId) d.password = document.getElementById('user-password').value;
+        try {
+            editUserId ? await api(`/api/admin/users/${editUserId}`, { method: 'PUT', body: JSON.stringify(d) }) : await api('/api/admin/users', { method: 'POST', body: JSON.stringify(d) });
+            showToast('Saved', 'success');
+            closeModal('user-modal');
+            loadUsers();
+        } catch (e) {
+            showToast(e.message, 'error');
+        }
+    }
+
+    async function backupDb() {
+        try {
+            window.open('/api/admin/backup', '_blank');
+            showToast('Backup started', 'success');
+        } catch (e) {
+            showToast('Backup failed', 'error');
+        }
+    }
+
+    // ===== Vouchers =====
+    async function loadVouchers() {
+        try {
+            const filter = document.getElementById('voucher-filter').value;
+            const vouchers = await api(`/api/vouchers/${filter ? '?status=' + filter : ''}`);
+
+            const table = document.getElementById('vouchers-table');
+            if (vouchers.length === 0) {
+                table.innerHTML = '<tr><td colspan="7" style="text-align: center; color: var(--text-secondary);">No vouchers found</td></tr>';
+                return;
+            }
+
+            table.innerHTML = vouchers.map(v => `
+                <tr>
+                    <td><strong>${v.voucher_code}</strong></td>
+                    <td>${formatCurrency(v.amount)}</td>
+                    <td>${v.customer_name || 'Walk-in'}</td>
+                    <td>${formatDate(v.issued_at)}</td>
+                    <td>${formatDate(v.expires_at)}</td>
+                    <td>
+                        <span class="badge badge-${v.status === 'active' ? 'success' : v.status === 'redeemed' ? 'info' : 'danger'}">
+                            ${v.status.toUpperCase()}
+                        </span>
+                    </td>
+                    <td>
+                        ${v.status === 'active' ? `<button class="btn btn-sm btn-secondary" onclick="copyVoucherCode('${v.voucher_code}')">Copy Code</button>` : '-'}
+                    </td>
+                </tr>
+            `).join('');
+        } catch (e) {
+            showToast('Failed to load vouchers', 'error');
+        }
+    }
+
+    function showCreateVoucher() {
+        document.getElementById('voucher-amount').value = '';
+        document.getElementById('voucher-customer-search').value = '';
+        document.getElementById('voucher-customer-id').value = '';
+        document.getElementById('voucher-days').value = '30';
+        document.getElementById('voucher-reason').value = '';
+        document.getElementById('voucher-modal').classList.add('active');
+    }
+
+    let customerSearchTimeout;
+    async function searchVoucherCustomers() {
+        clearTimeout(customerSearchTimeout);
+        const query = document.getElementById('voucher-customer-search').value.trim();
+
+        if (query.length < 2) {
+            document.getElementById('voucher-customer-results').style.display = 'none';
+            return;
+        }
+
+        customerSearchTimeout = setTimeout(async () => {
+            try {
+                const customers = await api(`/api/customers/?search=${encodeURIComponent(query)}&limit=5`);
+                const results = document.getElementById('voucher-customer-results');
+
+                if (customers.length === 0) {
+                    results.innerHTML = '<div style="padding: 0.5rem; color: var(--text-secondary);">No customers found</div>';
+                } else {
+                    results.innerHTML = customers.map(c => `
+                        <div style="padding: 0.5rem; cursor: pointer; border-bottom: 1px solid var(--border);" 
+                             onclick="selectVoucherCustomer(${c.id}, '${c.name}')">
+                            <strong>${c.name}</strong>
+                            ${c.mobile ? `<br><small>${c.mobile}</small>` : ''}
+                        </div>
+                    `).join('');
+                }
+                results.style.display = 'block';
+            } catch (e) {
+                console.error(e);
+            }
+        }, 300);
+    }
+
+    function selectVoucherCustomer(id, name) {
+        document.getElementById('voucher-customer-id').value = id;
+        document.getElementById('voucher-customer-search').value = name;
+        document.getElementById('voucher-customer-results').style.display = 'none';
+    }
+
+    async function createVoucher(e) {
+        e.preventDefault();
+
+        const amount = parseFloat(document.getElementById('voucher-amount').value);
+        const customerId = document.getElementById('voucher-customer-id').value || null;
+        const days = parseInt(document.getElementById('voucher-days').value);
+
+        if (!confirm(`Create voucher worth ₹${amount} valid for ${days} days?`)) return;
+
+        try {
+            // Create voucher manually via API (need to add this endpoint)
+            const result = await api('/api/admin/vouchers/create', {
+                method: 'POST',
+                body: JSON.stringify({
+                    amount: amount,
+                    customer_id: customerId ? parseInt(customerId) : null,
+                    validity_days: days,
+                    reason: document.getElementById('voucher-reason').value
+                })
+            });
+
+            showToast(`Voucher created: ${result.voucher_code}`, 'success');
+            closeModal('voucher-modal');
+            loadVouchers();
+
+            // Show voucher code
+            alert(`Voucher Created!\n\nCode: ${result.voucher_code}\nAmount: ₹${result.amount}\nExpires: ${formatDate(result.expires_at)}`);
+        } catch (e) {
+            showToast(e.message, 'error');
+        }
+    }
+
+    function copyVoucherCode(code) {
+        navigator.clipboard.writeText(code);
+        showToast('Voucher code copied!', 'success');
+    }
+
+    // ===== Customers =====
+    let customersData = [];
+    let searchTimeout;
+    let editCustomerId = null;
+
+    async function searchCustomers() {
+        clearTimeout(searchTimeout);
+        const query = document.getElementById('customer-search').value.trim();
+
+        if (query.length < 2) {
+            document.getElementById('customers-table').innerHTML = '<tr><td colspan="6" style="text-align: center; color: var(--text-secondary);">Enter at least 2 characters to search</td></tr>';
+            return;
+        }
+
+        searchTimeout = setTimeout(async () => {
+            try {
+                customersData = await api(`/api/customers/?search=${encodeURIComponent(query)}`);
+                renderCustomers();
+            } catch (e) {
+                showToast('Failed to search customers', 'error');
+            }
+        }, 300);
+    }
+
+    async function renderCustomers() {
+        const table = document.getElementById('customers-table');
+
+        if (customersData.length === 0) {
+            table.innerHTML = '<tr><td colspan="6" style="text-align: center; color: var(--text-secondary);">No customers found</td></tr>';
+            return;
+        }
+
+        // Get details for each customer
+        const rows = await Promise.all(customersData.map(async (c) => {
+            try {
+                const details = await api(`/api/customers/${c.id}/details`);
+                return `
+                    <tr>
+                        <td>${c.name}</td>
+                        <td>${c.mobile || '-'}</td>
+                        <td>${c.email || '-'}</td>
+                        <td>${details.statistics.total_orders}</td>
+                        <td>${formatCurrency(details.statistics.total_spent)}</td>
+                        <td>
+                            <button class="btn btn-sm btn-primary" onclick="viewCustomerDetails(${c.id})">View</button>
+                            <button class="btn btn-sm btn-secondary" onclick="editCustomer(${c.id})">Edit</button>
+                        </td>
+                    </tr>
+                `;
+            } catch {
+                return `
+                    <tr>
+                        <td>${c.name}</td>
+                        <td>${c.mobile || '-'}</td>
+                        <td>${c.email || '-'}</td>
+                        <td>-</td>
+                        <td>-</td>
+                        <td>
+                            <button class="btn btn-sm btn-secondary" onclick="editCustomer(${c.id})">Edit</button>
+                        </td>
+                    </tr>
+                `;
+            }
+        }));
+
+        table.innerHTML = rows.join('');
+    }
+
+    function showAddCustomer() {
+        editCustomerId = null;
+        document.getElementById('customer-modal-title').textContent = 'Add Customer';
+        document.getElementById('customer-id').value = '';
+        document.getElementById('customer-name').value = '';
+        document.getElementById('customer-mobile').value = '';
+        document.getElementById('customer-email').value = '';
+        document.getElementById('customer-address').value = '';
+        document.getElementById('customer-modal').classList.add('active');
+    }
+
+    async function editCustomer(id) {
+        try {
+            const customer = await api(`/api/customers/${id}`);
+            editCustomerId = id;
+            document.getElementById('customer-modal-title').textContent = 'Edit Customer';
+            document.getElementById('customer-id').value = customer.id;
+            document.getElementById('customer-name').value = customer.name;
+            document.getElementById('customer-mobile').value = customer.mobile || '';
+            document.getElementById('customer-email').value = customer.email || '';
+            document.getElementById('customer-address').value = customer.address || '';
+            document.getElementById('customer-modal').classList.add('active');
+        } catch (e) {
+            showToast('Failed to load customer', 'error');
+        }
+    }
+
+    async function saveCustomer(e) {
+        e.preventDefault();
+
+        const data = {
+            name: document.getElementById('customer-name').value,
+            mobile: document.getElementById('customer-mobile').value || null,
+            email: document.getElementById('customer-email').value || null,
+            address: document.getElementById('customer-address').value || null
+        };
+
+        try {
+            if (editCustomerId) {
+                await api(`/api/customers/${editCustomerId}`, {
+                    method: 'PUT',
+                    body: JSON.stringify(data)
+                });
+                showToast('Customer updated successfully', 'success');
+            } else {
+                await api('/api/customers/', {
+                    method: 'POST',
+                    body: JSON.stringify(data)
+                });
+                showToast('Customer added successfully', 'success');
+            }
+
+            closeModal('customer-modal');
+            searchCustomers();
+        } catch (e) {
+            showToast(e.message, 'error');
+        }
+    }
+
+    async function viewCustomerDetails(customerId) {
+        try {
+            const data = await api(`/api/customers/${customerId}/details`);
+            const customer = data.customer;
+            const stats = data.statistics;
+            const orders = data.recent_orders;
+
+            const content = `
+                <div style="display: grid; gap: 1.5rem;">
+                    <div style="background: var(--bg-card); padding: 1.5rem; border-radius: 0.75rem;">
+                        <h3 style="margin-bottom: 1rem;">Customer Information</h3>
+                        <div style="display: grid; gap: 0.75rem;">
+                            <div><strong>Name:</strong> ${customer.name}</div>
+                            ${customer.mobile ? `<div><strong>Mobile:</strong> ${customer.mobile}</div>` : ''}
+                            ${customer.email ? `<div><strong>Email:</strong> ${customer.email}</div>` : ''}
+                            ${customer.address ? `<div><strong>Address:</strong> ${customer.address}</div>` : ''}
+                            <div><strong>Customer Since:</strong> ${formatDate(customer.created_at)}</div>
+                        </div>
+                    </div>
+
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                        <div style="background: var(--bg-card); padding: 1rem; border-radius: 0.5rem; text-align: center;">
+                            <div style="font-size: 2rem; font-weight: 700; color: var(--primary);">${stats.total_orders}</div>
+                            <div style="color: var(--text-secondary); font-size: 0.875rem;">Total Orders</div>
+                        </div>
+                        <div style="background: var(--bg-card); padding: 1rem; border-radius: 0.5rem; text-align: center;">
+                            <div style="font-size: 2rem; font-weight: 700; color: var(--success);">${formatCurrency(stats.total_spent)}</div>
+                            <div style="color: var(--text-secondary); font-size: 0.875rem;">Total Spent</div>
+                        </div>
+                    </div>
+
+                    <div>
+                        <h3 style="margin-bottom: 1rem;">Recent Orders</h3>
+                        <div class="table-container">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Bill #</th>
+                                        <th>Amount</th>
+                                        <th>Payment</th>
+                                        <th>Date</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    ${orders.length > 0 ? orders.map(o => `
+                                        <tr>
+                                            <td>${o.bill_number}</td>
+                                            <td>${formatCurrency(o.total_amount)}</td>
+                                            <td><span class="badge badge-info">${o.payment_mode.toUpperCase()}</span></td>
+                                            <td>${formatDate(o.created_at)}</td>
+                                        </tr>
+                                    `).join('') : '<tr><td colspan="4" style="text-align: center; color: var(--text-secondary);">No orders yet</td></tr>'}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            document.getElementById('customer-details-content').innerHTML = content;
+            document.getElementById('customer-details-modal').classList.add('active');
+        } catch (e) {
+            showToast('Failed to load customer details', 'error');
+        }
+    }
+</script>
+{% endblock %}

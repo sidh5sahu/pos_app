@@ -1,0 +1,1121 @@
+{% extends "base.html" %}
+
+{% block title %}Sales Dashboard - Billing{% endblock %}
+
+{% block extra_styles %}
+<style>
+    .billing-layout {
+        display: grid;
+        grid-template-columns: 1fr 400px;
+        gap: 1.5rem;
+        height: calc(100vh - 140px);
+    }
+
+    .products-section {
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+    }
+
+    .search-bar {
+        position: relative;
+        margin-bottom: 1rem;
+    }
+
+    .search-bar input {
+        width: 100%;
+        padding: 1rem 1rem 1rem 3rem;
+        font-size: 1.125rem;
+        background: var(--bg-secondary);
+        border: 2px solid var(--border);
+        border-radius: 0.75rem;
+        color: var(--text-primary);
+    }
+
+    .search-bar input:focus {
+        border-color: var(--primary);
+        outline: none;
+    }
+
+    .search-bar .search-icon {
+        position: absolute;
+        left: 1rem;
+        top: 50%;
+        transform: translateY(-50%);
+        font-size: 1.25rem;
+    }
+
+    .search-bar .barcode-hint {
+        position: absolute;
+        right: 1rem;
+        top: 50%;
+        transform: translateY(-50%);
+        color: var(--text-secondary);
+        font-size: 0.75rem;
+        background: var(--bg-card);
+        padding: 0.25rem 0.5rem;
+        border-radius: 0.25rem;
+    }
+
+    .products-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+        gap: 1rem;
+        overflow-y: auto;
+        flex: 1;
+        padding-right: 0.5rem;
+    }
+
+    .product-card {
+        background: var(--bg-secondary);
+        border: 1px solid var(--border);
+        border-radius: 0.75rem;
+        padding: 1rem;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+    .product-card:hover {
+        border-color: var(--primary);
+        transform: translateY(-2px);
+    }
+
+    .product-card.out-of-stock {
+        opacity: 0.5;
+        cursor: not-allowed;
+    }
+
+    .product-name {
+        font-weight: 600;
+        margin-bottom: 0.5rem;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .product-price {
+        font-size: 1.25rem;
+        font-weight: 700;
+        color: var(--primary);
+    }
+
+    .product-stock {
+        font-size: 0.75rem;
+        color: var(--text-secondary);
+        margin-top: 0.25rem;
+    }
+
+    /* Cart Sidebar */
+    .cart-section {
+        background: var(--bg-secondary);
+        border-radius: 1rem;
+        border: 1px solid var(--border);
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+    }
+
+    .cart-header {
+        padding: 1rem 1.5rem;
+        border-bottom: 1px solid var(--border);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .cart-title {
+        font-size: 1.125rem;
+        font-weight: 600;
+    }
+
+    .cart-items {
+        flex: 1;
+        overflow-y: auto;
+        padding: 0.5rem;
+    }
+
+    .cart-item {
+        display: flex;
+        align-items: center;
+        padding: 0.75rem;
+        background: var(--bg-card);
+        border-radius: 0.5rem;
+        margin-bottom: 0.5rem;
+    }
+
+    .cart-item-info {
+        flex: 1;
+    }
+
+    .cart-item-name {
+        font-weight: 500;
+        font-size: 0.875rem;
+    }
+
+    .cart-item-price {
+        color: var(--text-secondary);
+        font-size: 0.75rem;
+    }
+
+    .cart-item-qty {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .qty-btn {
+        width: 1.75rem;
+        height: 1.75rem;
+        border: none;
+        border-radius: 0.375rem;
+        background: var(--bg-secondary);
+        color: var(--text-primary);
+        cursor: pointer;
+        font-weight: 600;
+    }
+
+    .qty-btn:hover {
+        background: var(--primary);
+    }
+
+    .cart-item-total {
+        font-weight: 600;
+        min-width: 70px;
+        text-align: right;
+    }
+
+    .cart-item-remove {
+        background: none;
+        border: none;
+        color: var(--danger);
+        cursor: pointer;
+        padding: 0.25rem;
+        margin-left: 0.5rem;
+    }
+
+    .cart-empty {
+        text-align: center;
+        color: var(--text-secondary);
+        padding: 3rem 1rem;
+    }
+
+    .cart-footer {
+        padding: 1rem 1.5rem;
+        border-top: 1px solid var(--border);
+    }
+
+    .cart-summary {
+        margin-bottom: 1rem;
+    }
+
+    .summary-row {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 0.5rem;
+        font-size: 0.875rem;
+    }
+
+    .summary-row.total {
+        font-size: 1.25rem;
+        font-weight: 700;
+        padding-top: 0.5rem;
+        border-top: 1px solid var(--border);
+    }
+
+    .discount-row {
+        display: flex;
+        gap: 0.5rem;
+        margin-bottom: 1rem;
+    }
+
+    .discount-row input {
+        flex: 1;
+        padding: 0.5rem;
+        border-radius: 0.375rem;
+        border: 1px solid var(--border);
+        background: var(--bg-card);
+        color: var(--text-primary);
+    }
+
+    .payment-modes {
+        display: flex;
+        gap: 0.5rem;
+        margin-bottom: 1rem;
+    }
+
+    .payment-mode {
+        flex: 1;
+        padding: 0.625rem;
+        border: 1px solid var(--border);
+        border-radius: 0.5rem;
+        background: var(--bg-card);
+        color: var(--text-primary);
+        cursor: pointer;
+        text-align: center;
+        font-weight: 500;
+        transition: all 0.2s;
+    }
+
+    .payment-mode.active {
+        border-color: var(--primary);
+        background: rgba(99, 102, 241, 0.1);
+        color: var(--primary);
+    }
+
+    .checkout-btn {
+        width: 100%;
+        padding: 1rem;
+        font-size: 1rem;
+    }
+
+    /* Customer Section */
+    .customer-section {
+        padding: 0.75rem 1rem;
+        border-bottom: 1px solid var(--border);
+        background: var(--bg-card);
+    }
+
+    .customer-search-wrapper {
+        position: relative;
+    }
+
+    .customer-search-wrapper input {
+        width: 100%;
+        padding: 0.5rem 2.5rem 0.5rem 0.75rem;
+        border: 1px solid var(--border);
+        border-radius: 0.5rem;
+        background: var(--bg-secondary);
+        color: var(--text-primary);
+        font-size: 0.875rem;
+    }
+
+    .customer-search-wrapper .add-btn {
+        position: absolute;
+        right: 0.25rem;
+        top: 50%;
+        transform: translateY(-50%);
+        background: var(--primary);
+        border: none;
+        color: white;
+        width: 1.75rem;
+        height: 1.75rem;
+        border-radius: 0.375rem;
+        cursor: pointer;
+        font-size: 1rem;
+    }
+
+    .customer-dropdown {
+        position: absolute;
+        top: 100%;
+        left: 0;
+        right: 0;
+        background: var(--bg-secondary);
+        border: 1px solid var(--border);
+        border-radius: 0.5rem;
+        margin-top: 0.25rem;
+        max-height: 200px;
+        overflow-y: auto;
+        z-index: 100;
+        display: none;
+    }
+
+    .customer-dropdown.show {
+        display: block;
+    }
+
+    .customer-option {
+        padding: 0.625rem 0.75rem;
+        cursor: pointer;
+        border-bottom: 1px solid var(--border);
+    }
+
+    .customer-option:hover {
+        background: var(--bg-card);
+    }
+
+    .customer-option:last-child {
+        border-bottom: none;
+    }
+
+    .customer-selected {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        background: rgba(99, 102, 241, 0.1);
+        padding: 0.5rem 0.75rem;
+        border-radius: 0.5rem;
+        border: 1px solid var(--primary);
+    }
+
+    .customer-selected .name {
+        font-weight: 500;
+    }
+
+    .customer-selected .mobile {
+        font-size: 0.75rem;
+        color: var(--text-secondary);
+    }
+
+    .customer-selected .clear {
+        background: none;
+        border: none;
+        color: var(--danger);
+        cursor: pointer;
+        font-size: 1rem;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="billing-layout">
+    <!-- Products Section -->
+    <div class="products-section">
+        <div style="display: flex; gap: 1rem; margin-bottom: 1rem;">
+            <div class="search-bar" style="flex: 1; margin-bottom: 0;">
+                <span class="search-icon">🔍</span>
+                <input type="text" id="product-search" placeholder="Search product or scan barcode..." autofocus>
+                <span class="barcode-hint">📷 Barcode Ready</span>
+            </div>
+            <button class="btn btn-warning" onclick="showReturnModal()" style="height: 52px; white-space: nowrap;">
+                ↩️ Return
+            </button>
+        </div>
+        <div class="products-grid" id="products-grid">
+            <!-- Products loaded here -->
+        </div>
+    </div>
+
+    <!-- Cart Section -->
+    <div class="cart-section">
+        <!-- Customer Section -->
+        <div class="customer-section">
+            <div class="customer-search-wrapper" id="customer-search-wrapper">
+                <input type="text" id="customer-search" placeholder="🔍 Search or add customer (optional)..."
+                    oninput="searchCustomers()">
+                <button class="add-btn" onclick="showCustomerModal()" title="Add New Customer">+</button>
+                <div class="customer-dropdown" id="customer-dropdown"></div>
+            </div>
+            <div class="customer-selected" id="selected-customer" style="display: none;">
+                <div>
+                    <div class="name" id="selected-customer-name"></div>
+                    <div class="mobile" id="selected-customer-mobile"></div>
+                </div>
+                <button class="clear" onclick="clearCustomer()">✕</button>
+            </div>
+        </div>
+        <div class="cart-header">
+            <span class="cart-title">🛒 Current Bill</span>
+            <button class="btn btn-secondary btn-sm" onclick="clearCart()">Clear</button>
+        </div>
+        <div class="cart-items" id="cart-items">
+            <div class="cart-empty">
+                <div style="font-size: 3rem; margin-bottom: 0.5rem;">🛒</div>
+                <div>Cart is empty</div>
+                <div style="font-size: 0.75rem;">Search or scan products to add</div>
+            </div>
+        </div>
+        <div class="cart-footer">
+            <div class="discount-row">
+                <input type="number" id="discount-percent" placeholder="Discount %" min="0" max="100" step="0.1"
+                    onchange="updateTotals()" style="width: 100%;">
+            </div>
+
+            <!-- Voucher Section -->
+            <div style="margin: 0.75rem 0;">
+                <div style="display: flex; gap: 0.5rem; margin-bottom: 0.5rem;">
+                    <input type="text" id="voucher-code" placeholder="Enter voucher code" class="form-control"
+                        style="flex: 1; text-transform: uppercase;" onkeyup="if(event.key==='Enter') applyVoucher()">
+                    <button class="btn btn-secondary btn-sm" onclick="applyVoucher()" style="white-space: nowrap;">
+                        Apply Voucher
+                    </button>
+                </div>
+                <div id="applied-voucher" style="display: none; padding: 0.75rem; background: rgba(16, 185, 129, 0.1); 
+                     border-radius: 0.5rem; border: 1px solid #10b981; font-size: 0.875rem;">
+                    <!-- Voucher details shown here when applied -->
+                </div>
+            </div>
+
+            <div class="cart-summary">
+                <div class="summary-row">
+                    <span>Subtotal</span>
+                    <span id="subtotal">₹0.00</span>
+                </div>
+                <div class="summary-row">
+                    <span>Discount</span>
+                    <span id="discount-display">₹0.00</span>
+                </div>
+                <div class="summary-row" id="voucher-discount-row" style="display: none;">
+                    <span>Voucher</span>
+                    <span id="voucher-discount">₹0.00</span>
+                </div>
+                <div class="summary-row total">
+                    <span>Total</span>
+                    <span id="grand-total">₹0.00</span>
+                </div>
+            </div>
+            <div class="payment-modes">
+                <div class="payment-mode active" data-mode="cash" onclick="selectPaymentMode('cash')">💵 Cash</div>
+                <div class="payment-mode" data-mode="upi" onclick="selectPaymentMode('upi')">📱 UPI</div>
+                <div class="payment-mode" data-mode="card" onclick="selectPaymentMode('card')">💳 Card</div>
+            </div>
+            <button class="btn btn-primary checkout-btn" onclick="checkout()">
+                Complete Sale (F12)
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Bill Preview Modal -->
+<div class="modal-overlay" id="bill-modal">
+    <div class="modal" style="max-width: 600px;">
+        <div class="modal-header">
+            <span class="modal-title">📄 Bill Preview</span>
+            <button class="modal-close" onclick="closeBillModal()">&times;</button>
+        </div>
+        <div id="bill-content">
+            <!-- Bill preview content -->
+        </div>
+        <div style="display: flex; gap: 1rem; margin-top: 1.5rem;">
+            <button class="btn btn-primary" onclick="printBill()" style="flex: 1;">🖨️ Print Bill</button>
+            <button class="btn btn-secondary" onclick="downloadPdf()" style="flex: 1;">📥 Download PDF</button>
+            <button class="btn btn-success" onclick="newSale()" style="flex: 1;">➕ New Sale</button>
+        </div>
+    </div>
+</div>
+
+<!-- Customer Modal -->
+<div class="modal-overlay" id="customer-modal">
+    <div class="modal">
+        <div class="modal-header">
+            <span class="modal-title">👤 Add New Customer</span>
+            <button class="modal-close" onclick="closeCustomerModal()">&times;</button>
+        </div>
+        <form onsubmit="saveCustomer(event)">
+            <div class="form-group">
+                <label>Customer Name *</label>
+                <input type="text" class="form-control" id="new-customer-name" required>
+            </div>
+            <div class="form-group">
+                <label>Mobile Number</label>
+                <input type="tel" class="form-control" id="new-customer-mobile" placeholder="10-digit mobile">
+            </div>
+            <div class="form-group">
+                <label>Email</label>
+                <input type="email" class="form-control" id="new-customer-email">
+            </div>
+            <div class="form-group">
+                <label>Address</label>
+                <textarea class="form-control" id="new-customer-address" rows="2"></textarea>
+            </div>
+            <button type="submit" class="btn btn-primary" style="width: 100%;">Save Customer</button>
+        </form>
+    </div>
+</div>
+<!-- Return Request Modal -->
+<div class="modal-overlay" id="return-modal">
+    <div class="modal">
+        <div class="modal-header">
+            <span class="modal-title">↩️ Request Return</span>
+            <button class="modal-close" onclick="closeReturnModal()">&times;</button>
+        </div>
+        <form onsubmit="submitReturn(event)">
+            <div class="form-group">
+                <label>Bill Number</label>
+                <div class="d-flex gap-1">
+                    <input type="text" class="form-control" id="return-bill-search"
+                        placeholder="Scan or enter bill number" required>
+                    <button type="button" class="btn btn-secondary" onclick="searchReturnBill()">Search</button>
+                </div>
+            </div>
+            <div id="return-items-container"
+                style="display:none; max-height: 300px; overflow-y: auto; margin-bottom: 1rem; border: 1px solid var(--border); border-radius: 0.5rem; padding: 0.5rem;">
+                <!-- Items will be populated here -->
+            </div>
+            <div id="return-form-details" style="display:none;">
+                <input type="hidden" id="return-order-id">
+                <input type="hidden" id="return-product-id">
+                <div class="form-group">
+                    <label>Product: <span id="return-product-name" style="font-weight: bold;"></span></label>
+                </div>
+                <div class="form-group">
+                    <label>Quantity to Return (Max: <span id="return-max-qty"></span>)</label>
+                    <input type="number" class="form-control" id="return-qty" min="1" required>
+                </div>
+                <div class="form-group">
+                    <label>Reason</label>
+                    <textarea class="form-control" id="return-reason" rows="2" placeholder="Reason for return..."
+                        required></textarea>
+                </div>
+                <button type="submit" class="btn btn-warning" style="width: 100%;">Submit Return Request</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    let products = [];
+    let cart = [];
+    let paymentMode = 'cash';
+    let lastOrderId = null;
+    let selectedCustomer = null;
+    let customerSearchTimeout = null;
+
+    // Load products on page load
+    document.addEventListener('DOMContentLoaded', async () => {
+        await loadProducts();
+        setupSearch();
+        setupKeyboardShortcuts();
+    });
+
+    async function loadProducts() {
+        try {
+            products = await api('/api/products/?active_only=true&limit=500');
+            renderProducts(products);
+        } catch (error) {
+            showToast('Failed to load products', 'error');
+        }
+    }
+
+    function renderProducts(productsToShow) {
+        const grid = document.getElementById('products-grid');
+        if (productsToShow.length === 0) {
+            grid.innerHTML = `<div style="grid-column: 1/-1; text-align: center; padding: 3rem; color: var(--text-secondary);">
+                No products found
+            </div>`;
+            return;
+        }
+
+        grid.innerHTML = productsToShow.map(p => `
+            <div class="product-card ${p.stock_quantity <= 0 ? 'out-of-stock' : ''}" 
+                 onclick="addToCart(${p.id})" 
+                 data-barcode="${p.barcode || ''}">
+                <div class="product-name" title="${p.product_name}">${p.product_name}</div>
+                <div class="product-price">${formatCurrency(p.selling_price)}</div>
+                <div class="product-stock">Stock: ${p.stock_quantity} ${p.unit}</div>
+            </div>
+        `).join('');
+    }
+
+    function setupSearch() {
+        const searchInput = document.getElementById('product-search');
+        let searchTimeout;
+
+        searchInput.addEventListener('input', (e) => {
+            clearTimeout(searchTimeout);
+            searchTimeout = setTimeout(() => {
+                const query = e.target.value.trim().toLowerCase();
+                if (query === '') {
+                    renderProducts(products);
+                } else {
+                    const filtered = products.filter(p =>
+                        p.product_name.toLowerCase().includes(query) ||
+                        (p.barcode && p.barcode.toLowerCase().includes(query))
+                    );
+                    renderProducts(filtered);
+                }
+            }, 200);
+        });
+
+        // Barcode scanner detection (fast input)
+        let barcodeBuffer = '';
+        let lastKeyTime = Date.now();
+
+        searchInput.addEventListener('keydown', (e) => {
+            const now = Date.now();
+
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                const value = searchInput.value.trim();
+
+                // Try to find exact barcode match
+                const product = products.find(p => p.barcode === value);
+                if (product) {
+                    addToCart(product.id);
+                    searchInput.value = '';
+                    renderProducts(products);
+                }
+            }
+        });
+    }
+
+    function setupKeyboardShortcuts() {
+        document.addEventListener('keydown', (e) => {
+            // F12 for checkout
+            if (e.key === 'F12') {
+                e.preventDefault();
+                checkout();
+            }
+            // Escape to focus search
+            if (e.key === 'Escape') {
+                document.getElementById('product-search').focus();
+            }
+        });
+    }
+
+    function addToCart(productId) {
+        const product = products.find(p => p.id === productId);
+        if (!product || product.stock_quantity <= 0) {
+            showToast('Product out of stock', 'error');
+            return;
+        }
+
+        const existingItem = cart.find(item => item.product_id === productId);
+        if (existingItem) {
+            if (existingItem.quantity >= product.stock_quantity) {
+                showToast('Not enough stock', 'error');
+                return;
+            }
+            existingItem.quantity += 1;
+        } else {
+            cart.push({
+                product_id: product.id,
+                product_name: product.product_name,
+                price: product.selling_price,
+                quantity: 1,
+                max_stock: product.stock_quantity
+            });
+        }
+        renderCart();
+    }
+
+    // Return Request Functions
+    function showReturnModal() {
+        document.getElementById('return-modal').classList.add('active');
+        document.getElementById('return-bill-search').focus();
+        document.getElementById('return-items-container').style.display = 'none';
+        document.getElementById('return-form-details').style.display = 'none';
+        document.getElementById('return-bill-search').value = '';
+    }
+
+    function closeReturnModal() {
+        document.getElementById('return-modal').classList.remove('active');
+    }
+
+    async function searchReturnBill() {
+        const billNo = document.getElementById('return-bill-search').value.trim();
+        if (!billNo) return;
+
+        try {
+            const order = await api(`/api/billing/orders/by-bill/${billNo}`);
+            document.getElementById('return-order-id').value = order.id;
+
+            const container = document.getElementById('return-items-container');
+            container.innerHTML = '<table style="width:100%; font-size: 0.9rem;"><thead><tr><th>Item</th><th>Qty</th><th>Action</th></tr></thead><tbody>' +
+                order.items.map(item => `
+                    <tr>
+                        <td style="padding: 4px;">${item.product_name}</td>
+                        <td style="padding: 4px;">${item.quantity}</td>
+                        <td style="padding: 4px;">
+                            <button type="button" class="btn btn-sm btn-secondary" 
+                                onclick="selectReturnItem('${item.product_id}', '${item.product_name.replace(/'/g, "\\'")}', ${item.quantity})">
+                                Select
+                            </button>
+                        </td>
+                    </tr>
+                `).join('') + '</tbody></table>';
+
+            container.style.display = 'block';
+            document.getElementById('return-form-details').style.display = 'none';
+        } catch (e) {
+            showToast('Bill not found', 'error');
+        }
+    }
+
+    function selectReturnItem(productId, productName, maxQty) {
+        document.getElementById('return-product-id').value = productId;
+        document.getElementById('return-product-name').textContent = productName;
+        document.getElementById('return-max-qty').textContent = maxQty;
+        document.getElementById('return-qty').max = maxQty;
+        document.getElementById('return-qty').value = 1;
+        document.getElementById('return-form-details').style.display = 'block';
+    }
+
+    async function submitReturn(e) {
+        e.preventDefault();
+        try {
+            const data = {
+                order_id: +document.getElementById('return-order-id').value,
+                product_id: +document.getElementById('return-product-id').value,
+                quantity: +document.getElementById('return-qty').value,
+                reason: document.getElementById('return-reason').value
+            };
+
+            await api('/api/returns/', { method: 'POST', body: JSON.stringify(data) });
+            showToast('Return request submitted!', 'success');
+            closeReturnModal();
+        } catch (e) {
+            showToast(e.message, 'error');
+        }
+    }
+
+
+    function updateQuantity(productId, delta) {
+        const item = cart.find(i => i.product_id === productId);
+        if (!item) return;
+
+        const newQty = item.quantity + delta;
+        if (newQty <= 0) {
+            removeFromCart(productId);
+        } else if (newQty > item.max_stock) {
+            showToast('Not enough stock', 'warning');
+        } else {
+            item.quantity = newQty;
+            updateTotals();
+        }
+    }
+
+    function removeFromCart(productId) {
+        cart = cart.filter(item => item.product_id !== productId);
+        updateTotals();
+        renderCart();
+    }
+
+    function clearCart() {
+        cart = [];
+        document.getElementById('discount-percent').value = '';
+        removeVoucher();
+        renderCart();
+    }
+
+    function renderCart() {
+        const container = document.getElementById('cart-items');
+
+        if (cart.length === 0) {
+            container.innerHTML = `
+                <div class="cart-empty">
+                    <div style="font-size: 3rem; margin-bottom: 0.5rem;">🛒</div>
+                    <div>Cart is empty</div>
+                    <div style="font-size: 0.75rem;">Search or scan products to add</div>
+                </div>`;
+            updateTotals();
+            return;
+        }
+
+        container.innerHTML = cart.map(item => `
+            <div class="cart-item">
+                <div class="cart-item-info">
+                    <div class="cart-item-name">${item.product_name}</div>
+                    <div class="cart-item-price">${formatCurrency(item.price)} × ${item.quantity}</div>
+                </div>
+                <div class="cart-item-qty">
+                    <button class="qty-btn" onclick="updateQuantity(${item.product_id}, -1)">−</button>
+                    <span>${item.quantity}</span>
+                    <button class="qty-btn" onclick="updateQuantity(${item.product_id}, 1)">+</button>
+                </div>
+                <div class="cart-item-total">${formatCurrency(item.price * item.quantity)}</div>
+                <button class="cart-item-remove" onclick="removeFromCart(${item.product_id})">✕</button>
+            </div>
+        `).join('');
+
+        updateTotals();
+    }
+
+    // Voucher state
+    let appliedVoucher = null;
+
+    function updateTotals() {
+        const subtotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+
+        // Only percentage discount
+        const discountPercent = parseFloat(document.getElementById('discount-percent').value) || 0;
+        const totalDiscount = subtotal * discountPercent / 100;
+
+        // Apply voucher
+        let voucherDiscount = 0;
+        if (appliedVoucher) {
+            voucherDiscount = Math.min(appliedVoucher.amount, Math.max(0, subtotal - totalDiscount));
+        }
+
+        const grandTotal = Math.max(0, subtotal - totalDiscount - voucherDiscount);
+
+        document.getElementById('subtotal').textContent = formatCurrency(subtotal);
+        document.getElementById('discount-display').textContent = formatCurrency(totalDiscount);
+        document.getElementById('grand-total').textContent = formatCurrency(grandTotal);
+
+        // Show/hide voucher row
+        if (voucherDiscount > 0) {
+            document.getElementById('voucher-discount-row').style.display = 'flex';
+            document.getElementById('voucher-discount').textContent = '-' + formatCurrency(voucherDiscount);
+        } else {
+            document.getElementById('voucher-discount-row').style.display = 'none';
+        }
+    }
+
+    function selectPaymentMode(mode) {
+        paymentMode = mode;
+        document.querySelectorAll('.payment-mode').forEach(el => {
+            el.classList.toggle('active', el.dataset.mode === mode);
+        });
+    }
+
+    // Voucher Functions
+    async function applyVoucher() {
+        const code = document.getElementById('voucher-code').value.trim().toUpperCase();
+
+        if (!code) {
+            showToast('Please enter a voucher code', 'warning');
+            return;
+        }
+
+        try {
+            const voucher = await api(`/api/vouchers/validate/${code}`);
+            appliedVoucher = voucher;
+
+            // Show applied voucher
+            document.getElementById('applied-voucher').innerHTML = `
+                <div style="display: flex; justify-content: space-between; align-items: start;">
+                    <div>
+                        <strong>✓ Voucher Applied: ${voucher.voucher_code}</strong><br>
+                        <small>Amount: ${formatCurrency(voucher.amount)}</small><br>
+                        <small>Expires: ${new Date(voucher.expires_at).toLocaleDateString()}</small>
+                    </div>
+                    <button onclick="removeVoucher()" 
+                            style="background: none; border: none; color: #ef4444; 
+                                  cursor: pointer; font-size: 1.25rem; padding: 0;">✕</button>
+                </div>
+            `;
+            document.getElementById('applied-voucher').style.display = 'block';
+            updateTotals();
+            showToast('Voucher applied successfully!', 'success');
+
+        } catch (error) {
+            showToast(error.message, 'error');
+            appliedVoucher = null;
+        }
+    }
+
+    function removeVoucher() {
+        appliedVoucher = null;
+        document.getElementById('applied-voucher').style.display = 'none';
+        document.getElementById('voucher-code').value = '';
+        updateTotals();
+    }
+
+    async function checkout() {
+        if (cart.length === 0) {
+            showToast('Add items to cart first', 'warning');
+            return;
+        }
+
+        const discountPercent = parseFloat(document.getElementById('discount-percent').value) || 0;
+
+        try {
+            const orderData = {
+                items: cart.map(item => ({
+                    product_id: item.product_id,
+                    quantity: item.quantity,
+                    discount: 0
+                })),
+                customer_id: selectedCustomer ? selectedCustomer.id : null,
+                discount_percent: discountPercent,
+                payment_mode: paymentMode
+            };
+
+            const order = await api('/api/billing/orders', {
+                method: 'POST',
+                body: JSON.stringify(orderData)
+            });
+
+            // Redeem voucher if applied
+            if (appliedVoucher) {
+                try {
+                    await api(`/api/vouchers/${appliedVoucher.voucher_code}/redeem`, {
+                        method: 'POST',
+                        body: JSON.stringify({ order_id: order.id })
+                    });
+                } catch (voucherError) {
+                    console.error('Voucher redemption failed:', voucherError);
+                    showToast('Order created but voucher redemption failed', 'warning');
+                }
+            }
+
+            lastOrderId = order.id;
+            showBillPreview(order);
+            showToast('Sale completed!', 'success');
+
+            // Clear cart and voucher
+            clearCart();
+
+            // Reload products to update stock
+            await loadProducts();
+        } catch (error) {
+            showToast(error.message, 'error');
+        }
+    }
+
+    function showBillPreview(order) {
+        const modal = document.getElementById('bill-modal');
+        const content = document.getElementById('bill-content');
+
+        content.innerHTML = `
+            <div style="text-align: center; margin-bottom: 1.5rem;">
+                <h2 style="margin-bottom: 0.25rem;">Bill #${order.bill_number}</h2>
+                <div style="color: var(--text-secondary);">${formatDate(order.created_at)}</div>
+            </div>
+            <table style="width: 100%; margin-bottom: 1rem;">
+                <thead>
+                    <tr style="border-bottom: 2px solid var(--border);">
+                        <th style="text-align: left; padding: 0.5rem;">Item</th>
+                        <th style="text-align: right; padding: 0.5rem;">Qty</th>
+                        <th style="text-align: right; padding: 0.5rem;">Price</th>
+                        <th style="text-align: right; padding: 0.5rem;">Total</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${cart.map(item => `
+                        <tr style="border-bottom: 1px solid var(--border);">
+                            <td style="padding: 0.5rem;">${item.product_name}</td>
+                            <td style="text-align: right; padding: 0.5rem;">${item.quantity}</td>
+                            <td style="text-align: right; padding: 0.5rem;">${formatCurrency(item.price)}</td>
+                            <td style="text-align: right; padding: 0.5rem;">${formatCurrency(item.price * item.quantity)}</td>
+                        </tr>
+                    `).join('')}
+                </tbody>
+            </table>
+            <div style="border-top: 2px solid var(--border); padding-top: 1rem;">
+                <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
+                    <span>Subtotal:</span>
+                    <span>${formatCurrency(order.subtotal)}</span>
+                </div>
+                <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
+                    <span>Discount:</span>
+                    <span>-${formatCurrency(order.discount_amount)}</span>
+                </div>
+                <div style="display: flex; justify-content: space-between; font-size: 1.25rem; font-weight: 700;">
+                    <span>Total:</span>
+                    <span>${formatCurrency(order.total_amount)}</span>
+                </div>
+                <div style="margin-top: 1rem; text-align: center; color: var(--text-secondary);">
+                    Payment: ${order.payment_mode.toUpperCase()}
+                </div>
+            </div>
+        `;
+
+        modal.classList.add('active');
+    }
+
+    function closeBillModal() {
+        document.getElementById('bill-modal').classList.remove('active');
+    }
+
+    async function printBill() {
+        if (!lastOrderId) return;
+        const token = localStorage.getItem('token');
+        window.open(`/api/billing/orders/${lastOrderId}/print-pdf?token=${token}`, '_blank');
+    }
+
+    async function downloadPdf() {
+        if (!lastOrderId) return;
+        const token = localStorage.getItem('token');
+        const response = await fetch(`/api/billing/orders/${lastOrderId}/print-pdf?token=${token}`);
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `bill_${lastOrderId}.pdf`;
+        a.click();
+    }
+
+    function newSale() {
+        closeBillModal();
+        clearCart();
+        clearCustomer();
+        lastOrderId = null;
+        document.getElementById('product-search').focus();
+    }
+
+    // Customer Functions
+    async function searchCustomers() {
+        const query = document.getElementById('customer-search').value.trim();
+        clearTimeout(customerSearchTimeout);
+
+        if (query.length < 2) {
+            document.getElementById('customer-dropdown').classList.remove('show');
+            return;
+        }
+
+        customerSearchTimeout = setTimeout(async () => {
+            try {
+                const customers = await api(`/api/customers/search?q=${encodeURIComponent(query)}`);
+                const dropdown = document.getElementById('customer-dropdown');
+
+                if (customers.length === 0) {
+                    dropdown.innerHTML = '<div class="customer-option" style="color: var(--text-secondary);">No customers found. Click + to add.</div>';
+                } else {
+                    dropdown.innerHTML = customers.map(c => `
+                        <div class="customer-option" onclick="selectCustomer(${c.id}, '${c.name}', '${c.mobile || ''}')">
+                            <div style="font-weight: 500;">${c.name}</div>
+                            ${c.mobile ? `<div style="font-size: 0.75rem; color: var(--text-secondary);">${c.mobile}</div>` : ''}
+                        </div>
+                    `).join('');
+                }
+                dropdown.classList.add('show');
+            } catch (error) {
+                console.error('Customer search failed:', error);
+            }
+        }, 300);
+    }
+
+    function selectCustomer(id, name, mobile) {
+        selectedCustomer = { id, name, mobile };
+
+        document.getElementById('customer-search-wrapper').style.display = 'none';
+        document.getElementById('selected-customer').style.display = 'flex';
+        document.getElementById('selected-customer-name').textContent = name;
+        document.getElementById('selected-customer-mobile').textContent = mobile || 'No mobile';
+        document.getElementById('customer-dropdown').classList.remove('show');
+    }
+
+    function clearCustomer() {
+        selectedCustomer = null;
+        document.getElementById('customer-search-wrapper').style.display = 'block';
+        document.getElementById('selected-customer').style.display = 'none';
+        document.getElementById('customer-search').value = '';
+    }
+
+    function showCustomerModal() {
+        document.getElementById('new-customer-name').value = '';
+        document.getElementById('new-customer-mobile').value = '';
+        document.getElementById('new-customer-email').value = '';
+        document.getElementById('new-customer-address').value = '';
+        document.getElementById('customer-modal').classList.add('active');
+    }
+
+    function closeCustomerModal() {
+        document.getElementById('customer-modal').classList.remove('active');
+    }
+
+    async function saveCustomer(e) {
+        e.preventDefault();
+
+        const data = {
+            name: document.getElementById('new-customer-name').value,
+            mobile: document.getElementById('new-customer-mobile').value || null,
+            email: document.getElementById('new-customer-email').value || null,
+            address: document.getElementById('new-customer-address').value || null
+        };
+
+        try {
+            const customer = await api('/api/customers/', {
+                method: 'POST',
+                body: JSON.stringify(data)
+            });
+
+            showToast('Customer added!', 'success');
+            closeCustomerModal();
+            selectCustomer(customer.id, customer.name, customer.mobile);
+        } catch (error) {
+            showToast(error.message, 'error');
+        }
+    }
+
+    // Close dropdown on outside click
+    document.addEventListener('click', (e) => {
+        if (!e.target.closest('.customer-search-wrapper')) {
+            document.getElementById('customer-dropdown').classList.remove('show');
+        }
+    });
+</script>
+{% endblock %}
